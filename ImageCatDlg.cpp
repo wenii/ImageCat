@@ -54,6 +54,8 @@ END_MESSAGE_MAP()
 CImageCatDlg::CImageCatDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_IMAGECAT_DIALOG, pParent)
 	, m_expandRatio(1.0f)
+	, m_lButtonDown(false)
+	, m_ctrlKeyPress(false)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -71,6 +73,8 @@ BEGIN_MESSAGE_MAP(CImageCatDlg, CDialogEx)
 	ON_WM_MOUSEWHEEL()
 	ON_WM_MOUSEMOVE()
 	ON_WM_ERASEBKGND()
+	ON_WM_LBUTTONDOWN()
+	ON_WM_LBUTTONUP()
 END_MESSAGE_MAP()
 
 
@@ -106,7 +110,26 @@ BOOL CImageCatDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
-
+	LPWSTR* szArglist = NULL;
+	int nArgs = 0;
+	szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
+	if (NULL != szArglist)
+	{
+		//szArglist就是保存参数的数组
+		//nArgs是数组中参数的个数
+		//数组的第一个元素表示进程的path，也就是szArglist[0]，其他的元素依次是输入参数。
+		std::cout << szArglist << std::endl;
+		if (nArgs == 2)
+		{
+			m_imagePath = szArglist[1];
+			//m_imagePath = m_imagePath.Left(m_imagePath.ReverseFind('\\'));
+			SetWindowText(m_imagePath);
+			getImageNameFromPath(m_imagePath.Left(m_imagePath.ReverseFind('\\')));
+			setCurrentImageIndex();
+		}
+	}
+	//取得参数后，释放CommandLineToArgvW申请的空间
+	LocalFree(szArglist);
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -165,12 +188,16 @@ HCURSOR CImageCatDlg::OnQueryDragIcon()
 
 void CImageCatDlg::drawImage()
 {
+	if (m_imagePath == _T("")) 
+	{
+		return;
+	}
 	CPaintDC dc(this); // device context for painting
 
 	CRect		rect;
 	GetClientRect(&rect);
 	CImage		image;
-	image.Load(_T("_0YR8175.jpg"));
+	image.Load(m_imagePath);
 	
 	int orgImageWidth = image.GetWidth();
 	int orgImageHeight = image.GetHeight();
@@ -180,26 +207,16 @@ void CImageCatDlg::drawImage()
 	int rectWidth = rect.Width();
 	int rectHeight = rect.Height();
 
-
-
-	if (imageWidth <= rectWidth && imageHeight <= rectHeight)
 	{
-		// 绘制在中间
-		int screenOrgX =(rectWidth - imageWidth) / 2;
-		int screenOrgY =(rectHeight - imageHeight) / 2;
-		image.BitBlt(dc, screenOrgX, screenOrgY);
-		//image.StretchBlt(dc, screenOrgX, screenOrgY, rect.Width(), rect.Height(), 0, 0, image.GetWidth(), image.GetHeight());
-	}
-	else if (imageWidth > rectWidth || imageHeight > rectHeight)
-	{
-		float ratio = 0.0f;
+		float ratio = 1.0f;
 		if (imageWidth > imageHeight) 
 		{
-			if (imageWidth > imageHeight)
+			if (imageWidth > rectWidth)
 			ratio = rectWidth / (float)imageWidth;
 		}
 		else 
 		{
+			if(imageHeight > rectHeight)
 			ratio = rectHeight / (float)imageHeight;
 		}
 		
@@ -209,12 +226,23 @@ void CImageCatDlg::drawImage()
 		int screenOrgX = (rectWidth - imageWidth) / 2;
 		int screenOrgY = (rectHeight - imageHeight) / 2; 
 
+		if (m_lButtonDown)
+		{
+			CPoint offset = m_curMousePoint - m_lButtonDownPoint;
+			if (screenOrgX < 0) {
+				screenOrgX += offset.x;
+			}
+			if (screenOrgY < 0) {
+				screenOrgY += offset.y;
+			}
+		}
+
 		CDC memDC;
 		CBitmap memBitmap;
 		memDC.CreateCompatibleDC(NULL);
 		memBitmap.CreateCompatibleBitmap(&dc, rectWidth, rectHeight);
 		CBitmap* pOldBit = memDC.SelectObject(&memBitmap);
-		memDC.FillSolidRect(0, 0, rectWidth, rectHeight, RGB(255, 255, 255));
+		memDC.FillSolidRect(0, 0, rectWidth, rectHeight, RGB(255, 255, 255));  
 		
 		SetStretchBltMode(memDC, STRETCH_HALFTONE);
 		image.StretchBlt(memDC, screenOrgX, screenOrgY, imageWidth, imageHeight, 0, 0, image.GetWidth(), image.GetHeight());
@@ -224,6 +252,78 @@ void CImageCatDlg::drawImage()
 	}
 	
 	image.Destroy();    //没有Destroy()会有内存泄漏。Detach();不行的
+}
+
+bool CImageCatDlg::isFileFormatImage(CString fileName)
+{
+	CString suffix = fileName.Right(fileName.GetLength() - fileName.ReverseFind('.'));
+	if (suffix == ".png"
+		|| suffix == ".jpg"
+		|| suffix == ".png"
+		|| suffix == ".bmp"
+		|| suffix == ".gif")
+	{
+		return true;
+	}
+	return false;
+}
+
+
+
+void CImageCatDlg::getImageNameFromPath(CString path)
+{
+	CString filtPath = path +  "\\*.*";
+	HANDLE file;
+	WIN32_FIND_DATA fileData;
+	file = FindFirstFile(filtPath.GetBuffer(), &fileData);
+	if (file != INVALID_HANDLE_VALUE)
+	{
+		CString fileName = fileData.cFileName;
+		CString fullPath = path + "\\" + fileName;
+		bool fileAttribute = GetFileAttributes(fullPath) & FILE_ATTRIBUTE_DIRECTORY;
+		if (!fileAttribute)
+		{
+			if (isFileFormatImage(fileName))
+			{
+				m_ImageNameArray.push_back(fullPath);
+			}
+		}
+		while (FindNextFile(file, &fileData))
+		{
+			CString fileName = fileData.cFileName;
+			fullPath = path + "\\" + fileName;
+			bool fileAttribute = GetFileAttributes(fullPath) & FILE_ATTRIBUTE_DIRECTORY;
+			if (!fileAttribute)
+			{
+				if (isFileFormatImage(fileName))
+				{
+					m_ImageNameArray.push_back(fullPath);
+				}
+			}
+		}
+	}
+}
+
+void CImageCatDlg::setCurrentImageIndex()
+{
+	int imageCount = m_ImageNameArray.size();
+	for (int i = 0; i < imageCount; ++i)
+	{
+		if (m_ImageNameArray[i] == m_imagePath)
+		{
+			m_curentImageIndex = i;
+			break;
+		}
+	}
+}
+
+void CImageCatDlg::nextImage()
+{
+	const int imageCount = m_ImageNameArray.size();
+	m_curentImageIndex++;
+	const int index = m_curentImageIndex % imageCount;
+	m_imagePath = m_ImageNameArray[index];
+	SetWindowText(m_imagePath);
 }
 
 
@@ -242,34 +342,39 @@ BOOL CImageCatDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	std::cout << "[OnMouseWheel]  x:" << pt.x << " y:" << pt.y << " zDelta:" << zDelta << " nFlags:" << nFlags << std::endl;
+	if (nFlags & MK_CONTROL)
+	{
+		const int maxDelta = 12000;
+		static int delta = 0;
+		delta += zDelta;
+		if (delta > maxDelta)
+		{
+			delta = maxDelta;
+		}
+		else if (delta < 0)
+		{
+			delta = 0;
+		}
 
-	const int maxDelta = 12000;
-	static int delta = 0;
-	delta += zDelta;
-	if (delta > maxDelta)
-	{
-		delta = maxDelta;
-	}
-	else if (delta < 0)
-	{
-		delta = 0;
-	}
+		if ((delta >= 0 && delta <= maxDelta))
+		{
+			m_expandRatio = delta / float(maxDelta) * 8.0f + 1.0;
+		}
+		else
+		{
+			m_expandRatio = 1.0f;
+		}
 
-	if ((delta >= 0 && delta <= maxDelta)) 
-	{
-		m_expandRatio = delta / float(maxDelta) * 8.0f + 1.0;
-	} 
+		std::cout << "delta:" << delta << " expandRatio:" << m_expandRatio << std::endl;
+		//Invalidate(FALSE);
+		Invalidate();
+	}
 	else
 	{
-		m_expandRatio = 1.0f;
+		nextImage();
+		Invalidate();
 	}
-
-	std::cout << "delta:" << delta << " expandRatio:" << m_expandRatio << std::endl;
-	//Invalidate(FALSE);
-	CRect		rect;
-	GetClientRect(&rect);
-	InvalidateRect(rect);
-
+	
 	return CDialogEx::OnMouseWheel(nFlags, zDelta, pt);
 }
 
@@ -278,6 +383,10 @@ void CImageCatDlg::OnMouseMove(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	std::cout << "[OnMouseMove]  x:" << point.x << " y:" << point.y << " nFlags:" << nFlags << std::endl;
+	if (nFlags & MK_LBUTTON) {
+		m_curMousePoint = point;
+		Invalidate();
+	}
 	CDialogEx::OnMouseMove(nFlags, point);
 }
 
@@ -289,4 +398,25 @@ BOOL CImageCatDlg::OnEraseBkgnd(CDC* pDC)
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	return true;
 	//return CDialogEx::OnEraseBkgnd(pDC);
+}
+
+
+void CImageCatDlg::OnLButtonDown(UINT nFlags, CPoint point)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+
+	std::cout << "onLButtonDown::x:" << point.x << " y:" << point.y << std::endl;
+	m_lButtonDownPoint = point;
+	m_lButtonDown = true;
+	CDialogEx::OnLButtonDown(nFlags, point);
+}
+
+
+void CImageCatDlg::OnLButtonUp(UINT nFlags, CPoint point)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	std::cout << "OnLButtonUp::x:" << point.x << " y:" << point.y << std::endl;
+	m_lButtonDownPoint = CPoint(0, 0);
+	m_lButtonDown = false;
+	CDialogEx::OnLButtonUp(nFlags, point);
 }

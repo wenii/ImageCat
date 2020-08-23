@@ -56,6 +56,7 @@ BOOL CImageCatApp::InitInstance()
 #endif
 	CWinApp::InitInstance();
 
+	
 
 	AfxEnableControlContainer();
 
