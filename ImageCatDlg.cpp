@@ -31,6 +31,7 @@ public:
 // 实现
 protected:
 	DECLARE_MESSAGE_MAP()
+public:
 };
 
 CAboutDlg::CAboutDlg() : CDialogEx(IDD_ABOUTBOX)
@@ -44,6 +45,7 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 	ON_WM_ERASEBKGND()
+	ON_WM_LBUTTONDBLCLK()
 END_MESSAGE_MAP()
 
 
@@ -56,6 +58,8 @@ CImageCatDlg::CImageCatDlg(CWnd* pParent /*=nullptr*/)
 	, m_expandRatio(1.0f)
 	, m_lButtonDown(false)
 	, m_ctrlKeyPress(false)
+	, m_curentImageIndex(0)
+	, m_delta(0)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -75,6 +79,8 @@ BEGIN_MESSAGE_MAP(CImageCatDlg, CDialogEx)
 	ON_WM_ERASEBKGND()
 	ON_WM_LBUTTONDOWN()
 	ON_WM_LBUTTONUP()
+	ON_WM_MBUTTONDBLCLK()
+	ON_WM_LBUTTONDBLCLK()
 END_MESSAGE_MAP()
 
 
@@ -228,7 +234,7 @@ void CImageCatDlg::drawImage()
 
 		if (m_lButtonDown)
 		{
-			CPoint offset = m_curMousePoint - m_lButtonDownPoint;
+			CPoint offset = m_curMoveOffset + m_lastMoveOffset;
 			if (screenOrgX < 0) {
 				screenOrgX += offset.x;
 			}
@@ -324,6 +330,10 @@ void CImageCatDlg::nextImage()
 	const int index = m_curentImageIndex % imageCount;
 	m_imagePath = m_ImageNameArray[index];
 	SetWindowText(m_imagePath);
+	m_expandRatio = 1.0f;
+	m_curMoveOffset = CPoint(0, 0);
+	m_lastMoveOffset = CPoint(0, 0);
+	m_delta = 0;
 }
 
 
@@ -345,33 +355,33 @@ BOOL CImageCatDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 	if (nFlags & MK_CONTROL)
 	{
 		const int maxDelta = 12000;
-		static int delta = 0;
-		delta += zDelta;
-		if (delta > maxDelta)
+		//static int delta = 0;
+		m_delta += zDelta;
+		if (m_delta > maxDelta)
 		{
-			delta = maxDelta;
+			m_delta = maxDelta;
 		}
-		else if (delta < 0)
+		else if (m_delta < 0)
 		{
-			delta = 0;
+			m_delta = 0;
 		}
 
-		if ((delta >= 0 && delta <= maxDelta))
+		if ((m_delta >= 0 && m_delta <= maxDelta))
 		{
-			m_expandRatio = delta / float(maxDelta) * 8.0f + 1.0;
+			m_expandRatio = m_delta / float(maxDelta) * 8.0f + 1.0;
 		}
 		else
 		{
 			m_expandRatio = 1.0f;
 		}
 
-		std::cout << "delta:" << delta << " expandRatio:" << m_expandRatio << std::endl;
-		//Invalidate(FALSE);
+		std::cout << "delta:" << m_delta << " expandRatio:" << m_expandRatio << std::endl;
 		Invalidate();
 	}
 	else
 	{
 		nextImage();
+		
 		Invalidate();
 	}
 	
@@ -384,7 +394,7 @@ void CImageCatDlg::OnMouseMove(UINT nFlags, CPoint point)
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	std::cout << "[OnMouseMove]  x:" << point.x << " y:" << point.y << " nFlags:" << nFlags << std::endl;
 	if (nFlags & MK_LBUTTON) {
-		m_curMousePoint = point;
+		m_curMoveOffset = point - m_curMousePoint;
 		Invalidate();
 	}
 	CDialogEx::OnMouseMove(nFlags, point);
@@ -406,7 +416,7 @@ void CImageCatDlg::OnLButtonDown(UINT nFlags, CPoint point)
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 
 	std::cout << "onLButtonDown::x:" << point.x << " y:" << point.y << std::endl;
-	m_lButtonDownPoint = point;
+	m_curMousePoint = point;
 	m_lButtonDown = true;
 	CDialogEx::OnLButtonDown(nFlags, point);
 }
@@ -416,7 +426,22 @@ void CImageCatDlg::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	std::cout << "OnLButtonUp::x:" << point.x << " y:" << point.y << std::endl;
-	m_lButtonDownPoint = CPoint(0, 0);
+	m_lastMoveOffset += m_curMoveOffset;
 	m_lButtonDown = false;
 	CDialogEx::OnLButtonUp(nFlags, point);
+}
+
+
+
+
+void CImageCatDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	std::cout << "OnLButtonDblClk------------" << std::endl;
+	m_expandRatio = 1.0f;
+	m_curMoveOffset = CPoint(0, 0);
+	m_lastMoveOffset = CPoint(0, 0);
+	m_delta = 0;
+	Invalidate();
+	CDialogEx::OnLButtonDblClk(nFlags, point);
 }

@@ -24,12 +24,15 @@ private:
 	// 放大因子
 	float m_expandRatio;
 	bool m_lButtonDown;
-	CPoint m_lButtonDownPoint;
 	CPoint m_curMousePoint;
+	CPoint m_curMoveOffset;
+	CPoint m_lastMoveOffset;
 	bool m_ctrlKeyPress;
 	CString m_imagePath;
 	std::vector<CString> m_ImageNameArray;
 	int m_curentImageIndex;
+	int m_delta;
+	
 	 
 // 实现
 protected:
@@ -55,4 +58,5 @@ public:
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
 };
