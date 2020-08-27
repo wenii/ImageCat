@@ -4,7 +4,7 @@
     <RESOURCE_FILE>ImageCat.rc</RESOURCE_FILE>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>C:\Users\huoon\source\repos\ImageCat\LOGO-01.png</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>C:\Users\huoon\Desktop\全家福精修\_0YR8158.jpg</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

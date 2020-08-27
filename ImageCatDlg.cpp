@@ -116,26 +116,21 @@ BOOL CImageCatDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
-	LPWSTR* szArglist = NULL;
-	int nArgs = 0;
-	szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
-	if (NULL != szArglist)
+
+	CString arg = getCommandLineArg();
+	if (arg == _T(""))
 	{
-		//szArglist就是保存参数的数组
-		//nArgs是数组中参数的个数
-		//数组的第一个元素表示进程的path，也就是szArglist[0]，其他的元素依次是输入参数。
-		std::cout << szArglist << std::endl;
-		if (nArgs == 2)
-		{
-			m_imagePath = szArglist[1];
-			//m_imagePath = m_imagePath.Left(m_imagePath.ReverseFind('\\'));
-			SetWindowText(m_imagePath);
-			getImageNameFromPath(m_imagePath.Left(m_imagePath.ReverseFind('\\')));
-			setCurrentImageIndex();
-		}
+		return FALSE;
 	}
-	//取得参数后，释放CommandLineToArgvW申请的空间
-	LocalFree(szArglist);
+
+	m_imagePath = arg;
+	SetWindowText(m_imagePath);
+	CString path = m_imagePath.Left(m_imagePath.ReverseFind('\\'));
+	storageAllImageNameFromPath(path);
+	setCurrentImageIndex();
+
+	// 最大化窗口
+	ShowWindow(SW_MAXIMIZE);
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -274,9 +269,29 @@ bool CImageCatDlg::isFileFormatImage(CString fileName)
 	return false;
 }
 
+CString CImageCatDlg::getCommandLineArg()
+{
+	CString arg = _T("");
+	LPWSTR* szArglist = NULL;
+	int nArgs = 0;
+	szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
+	if (NULL != szArglist)
+	{
+		//szArglist就是保存参数的数组
+		//nArgs是数组中参数的个数
+		//数组的第一个元素表示进程的path，也就是szArglist[0]，其他的元素依次是输入参数。
+		std::cout << szArglist << std::endl;
+		if (nArgs == 2)
+		{
+			arg = szArglist[1];
+		}
+		LocalFree(szArglist);
+	}
+	
+	return arg;
+}
 
-
-void CImageCatDlg::getImageNameFromPath(CString path)
+void CImageCatDlg::storageAllImageNameFromPath(CString path)
 {
 	CString filtPath = path +  "\\*.*";
 	HANDLE file;
@@ -342,8 +357,20 @@ void CImageCatDlg::OnSize(UINT nType, int cx, int cy)
 {
 	CDialogEx::OnSize(nType, cx, cy);
 
-	Invalidate();
 	// TODO: 在此处添加消息处理程序代码
+	if (nType == SIZE_RESTORED)
+	{
+		int iWidth = GetSystemMetrics(SM_CXSCREEN); //获取屏幕水平分辨率
+		int iHeight = GetSystemMetrics(SM_CYSCREEN); //获取屏幕垂直分辨率
+		CRect   rcTemp;
+		rcTemp.BottomRight() = CPoint(iWidth / 8 * 7, iHeight / 8 * 7);
+		rcTemp.TopLeft() = CPoint(iWidth / 8, iHeight / 8);
+		MoveWindow(&rcTemp);
+		std::cout << "CImageCatDlg::onSize size restored." << std::endl;
+	}
+
+	Invalidate();
+	
 	
 }
 
@@ -355,7 +382,6 @@ BOOL CImageCatDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 	if (nFlags & MK_CONTROL)
 	{
 		const int maxDelta = 12000;
-		//static int delta = 0;
 		m_delta += zDelta;
 		if (m_delta > maxDelta)
 		{

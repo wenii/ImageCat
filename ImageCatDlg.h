@@ -47,7 +47,8 @@ protected:
 
 private:
 	void drawImage();
-	void getImageNameFromPath(CString path);
+	CString getCommandLineArg();
+	void storageAllImageNameFromPath(CString path);
 	bool isFileFormatImage(CString fileName);
 	void setCurrentImageIndex();
 	void nextImage();
