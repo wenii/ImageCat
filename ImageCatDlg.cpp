@@ -351,6 +351,32 @@ void CImageCatDlg::nextImage()
 	m_delta = 0;
 }
 
+void CImageCatDlg::prevImage()
+{
+	const int imageCount = m_ImageNameArray.size();
+	if (imageCount == 0)
+	{
+		return;
+	}
+
+	if (m_curentImageIndex == 0)
+	{
+		m_curentImageIndex = imageCount - 1;
+	}
+	else
+	{
+		m_curentImageIndex--;
+	}
+	
+	const int index = m_curentImageIndex % imageCount;
+	m_imagePath = m_ImageNameArray[index];
+	SetWindowText(m_imagePath);
+	m_expandRatio = 1.0f;
+	m_curMoveOffset = CPoint(0, 0);
+	m_lastMoveOffset = CPoint(0, 0);
+	m_delta = 0;
+}
+
 
 
 void CImageCatDlg::OnSize(UINT nType, int cx, int cy)
@@ -406,7 +432,14 @@ BOOL CImageCatDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 	}
 	else
 	{
-		nextImage();
+		if (zDelta < 0)
+		{
+			nextImage();
+		}
+		else
+		{
+			prevImage();
+		}
 		
 		Invalidate();
 	}
@@ -470,4 +503,25 @@ void CImageCatDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 	m_delta = 0;
 	Invalidate();
 	CDialogEx::OnLButtonDblClk(nFlags, point);
+}
+
+
+BOOL CImageCatDlg::PreTranslateMessage(MSG* pMsg)
+{
+	// TODO: 在此添加专用代码和/或调用基类
+	if (pMsg->message == WM_KEYDOWN)
+	{
+		if (pMsg->wParam == VK_DOWN)
+		{
+			std::cout << "onKeyDown --------------" << std::endl;
+			nextImage();
+			Invalidate();
+		}
+		else if (pMsg->wParam == VK_UP)
+		{
+			prevImage();
+			Invalidate();
+		}
+	}
+	return CDialogEx::PreTranslateMessage(pMsg);
 }
