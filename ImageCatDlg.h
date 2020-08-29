@@ -23,16 +23,14 @@ public:
 private:
 	// 放大因子
 	float m_expandRatio;
-	bool m_lButtonDown;
 	CPoint m_curMousePoint;
 	CPoint m_curMoveOffset;
-	CPoint m_lastMoveOffset;
 	bool m_ctrlKeyPress;
 	CString m_imagePath;
 	std::vector<CString> m_ImageNameArray;
 	int m_curentImageIndex;
 	int m_delta;
-	
+	CImage m_image;
 	 
 // 实现
 protected:

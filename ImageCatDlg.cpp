@@ -56,7 +56,6 @@ END_MESSAGE_MAP()
 CImageCatDlg::CImageCatDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_IMAGECAT_DIALOG, pParent)
 	, m_expandRatio(1.0f)
-	, m_lButtonDown(false)
 	, m_ctrlKeyPress(false)
 	, m_curentImageIndex(0)
 	, m_delta(0)
@@ -128,6 +127,7 @@ BOOL CImageCatDlg::OnInitDialog()
 	CString path = m_imagePath.Left(m_imagePath.ReverseFind('\\'));
 	storageAllImageNameFromPath(path);
 	setCurrentImageIndex();
+	m_image.Load(m_imagePath);
 
 	// 最大化窗口
 	ShowWindow(SW_MAXIMIZE);
@@ -197,14 +197,12 @@ void CImageCatDlg::drawImage()
 
 	CRect		rect;
 	GetClientRect(&rect);
-	CImage		image;
-	image.Load(m_imagePath);
 	
-	int orgImageWidth = image.GetWidth();
-	int orgImageHeight = image.GetHeight();
+	int orgImageWidth = m_image.GetWidth();
+	int orgImageHeight = m_image.GetHeight();
 	
-	int imageWidth = image.GetWidth();
-	int imageHeight = image.GetHeight();
+	int imageWidth = m_image.GetWidth();
+	int imageHeight = m_image.GetHeight();
 	int rectWidth = rect.Width();
 	int rectHeight = rect.Height();
 
@@ -227,15 +225,14 @@ void CImageCatDlg::drawImage()
 		int screenOrgX = (rectWidth - imageWidth) / 2;
 		int screenOrgY = (rectHeight - imageHeight) / 2; 
 
-		if (m_lButtonDown)
-		{
-			CPoint offset = m_curMoveOffset + m_lastMoveOffset;
-			if (screenOrgX < 0) {
-				screenOrgX += offset.x;
-			}
-			if (screenOrgY < 0) {
-				screenOrgY += offset.y;
-			}
+
+		CPoint offset = m_curMoveOffset;
+
+		if (screenOrgX < 0) {
+			screenOrgX += offset.x;
+		}
+		if (screenOrgY < 0) {
+			screenOrgY += offset.y;
 		}
 
 		CDC memDC;
@@ -246,13 +243,11 @@ void CImageCatDlg::drawImage()
 		memDC.FillSolidRect(0, 0, rectWidth, rectHeight, RGB(255, 255, 255));  
 		
 		SetStretchBltMode(memDC, STRETCH_HALFTONE);
-		image.StretchBlt(memDC, screenOrgX, screenOrgY, imageWidth, imageHeight, 0, 0, image.GetWidth(), image.GetHeight());
+		m_image.StretchBlt(memDC, screenOrgX, screenOrgY, imageWidth, imageHeight, 0, 0, m_image.GetWidth(), m_image.GetHeight());
 		dc.BitBlt(0, 0, rectWidth, rectHeight, &memDC, 0, 0, SRCCOPY);
 		memBitmap.DeleteObject();
 		memDC.DeleteDC();
 	}
-	
-	image.Destroy();    //没有Destroy()会有内存泄漏。Detach();不行的
 }
 
 bool CImageCatDlg::isFileFormatImage(CString fileName)
@@ -347,8 +342,9 @@ void CImageCatDlg::nextImage()
 	SetWindowText(m_imagePath);
 	m_expandRatio = 1.0f;
 	m_curMoveOffset = CPoint(0, 0);
-	m_lastMoveOffset = CPoint(0, 0);
 	m_delta = 0;
+	m_image.Destroy();
+	m_image.Load(m_imagePath);
 }
 
 void CImageCatDlg::prevImage()
@@ -373,8 +369,9 @@ void CImageCatDlg::prevImage()
 	SetWindowText(m_imagePath);
 	m_expandRatio = 1.0f;
 	m_curMoveOffset = CPoint(0, 0);
-	m_lastMoveOffset = CPoint(0, 0);
 	m_delta = 0;
+	m_image.Destroy();
+	m_image.Load(m_imagePath);
 }
 
 
@@ -396,8 +393,6 @@ void CImageCatDlg::OnSize(UINT nType, int cx, int cy)
 	}
 
 	Invalidate();
-	
-	
 }
 
 
@@ -451,9 +446,9 @@ BOOL CImageCatDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 void CImageCatDlg::OnMouseMove(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
-	std::cout << "[OnMouseMove]  x:" << point.x << " y:" << point.y << " nFlags:" << nFlags << std::endl;
 	if (nFlags & MK_LBUTTON) {
-		m_curMoveOffset = point - m_curMousePoint;
+		m_curMoveOffset += point - m_curMousePoint;
+		m_curMousePoint = point;
 		Invalidate();
 	}
 	CDialogEx::OnMouseMove(nFlags, point);
@@ -476,7 +471,6 @@ void CImageCatDlg::OnLButtonDown(UINT nFlags, CPoint point)
 
 	std::cout << "onLButtonDown::x:" << point.x << " y:" << point.y << std::endl;
 	m_curMousePoint = point;
-	m_lButtonDown = true;
 	CDialogEx::OnLButtonDown(nFlags, point);
 }
 
@@ -485,8 +479,6 @@ void CImageCatDlg::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	std::cout << "OnLButtonUp::x:" << point.x << " y:" << point.y << std::endl;
-	m_lastMoveOffset += m_curMoveOffset;
-	m_lButtonDown = false;
 	CDialogEx::OnLButtonUp(nFlags, point);
 }
 
@@ -499,7 +491,6 @@ void CImageCatDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 	std::cout << "OnLButtonDblClk------------" << std::endl;
 	m_expandRatio = 1.0f;
 	m_curMoveOffset = CPoint(0, 0);
-	m_lastMoveOffset = CPoint(0, 0);
 	m_delta = 0;
 	Invalidate();
 	CDialogEx::OnLButtonDblClk(nFlags, point);
