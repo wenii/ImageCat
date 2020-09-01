@@ -5,6 +5,7 @@
 #pragma once
 #include <vector>
 
+
 // CImageCatDlg 对话框
 class CImageCatDlg : public CDialogEx
 {
@@ -31,6 +32,7 @@ private:
 	int m_curentImageIndex;
 	int m_delta;
 	CImage m_image;
+	bool m_loadSuccess;
 	 
 // 实现
 protected:
@@ -44,10 +46,11 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 private:
+	void loadImage();
 	void drawImage();
 	CString getCommandLineArg();
 	void storageAllImageNameFromPath(CString path);
-	bool isFileFormatImage(CString fileName);
+	bool isSupportFileFormatImage(CString fileName);
 	void setCurrentImageIndex();
 	void nextImage();
 	void prevImage();

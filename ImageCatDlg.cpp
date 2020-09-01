@@ -49,16 +49,15 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
 
 
+
 // CImageCatDlg 对话框
-
-
-
 CImageCatDlg::CImageCatDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_IMAGECAT_DIALOG, pParent)
 	, m_expandRatio(1.0f)
 	, m_ctrlKeyPress(false)
 	, m_curentImageIndex(0)
 	, m_delta(0)
+	, m_loadSuccess(false)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -127,10 +126,20 @@ BOOL CImageCatDlg::OnInitDialog()
 	CString path = m_imagePath.Left(m_imagePath.ReverseFind('\\'));
 	storageAllImageNameFromPath(path);
 	setCurrentImageIndex();
-	m_image.Load(m_imagePath);
 
-	// 最大化窗口
-	ShowWindow(SW_MAXIMIZE);
+	if (isSupportFileFormatImage(m_imagePath))
+	{
+		// 加载图片
+		loadImage();
+
+		// 最大化窗口
+		ShowWindow(SW_MAXIMIZE);
+	}
+	else
+	{
+		MessageBox(_T("不支持的图片格式！"), _T("提示"), MB_OK);
+		exit(0);
+	}
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -185,8 +194,20 @@ HCURSOR CImageCatDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-// 绘制图片
+void CImageCatDlg::loadImage()
+{
+	HRESULT result = m_image.Load(m_imagePath);
+	if (result == 0)
+	{
+		m_loadSuccess = true;
+	}
+	else
+	{
+		m_loadSuccess = false;
+	}
+}
 
+// 绘制图片
 void CImageCatDlg::drawImage()
 {
 	if (m_imagePath == _T("")) 
@@ -198,42 +219,60 @@ void CImageCatDlg::drawImage()
 	CRect		rect;
 	GetClientRect(&rect);
 	
-	int orgImageWidth = m_image.GetWidth();
-	int orgImageHeight = m_image.GetHeight();
-	
-	int imageWidth = m_image.GetWidth();
-	int imageHeight = m_image.GetHeight();
 	int rectWidth = rect.Width();
 	int rectHeight = rect.Height();
 
+	if(m_loadSuccess)
 	{
-		float ratio = 1.0f;
-		if (imageWidth > imageHeight) 
-		{
-			if (imageWidth > rectWidth)
-			ratio = rectWidth / (float)imageWidth;
-		}
-		else 
-		{
-			if(imageHeight > rectHeight)
-			ratio = rectHeight / (float)imageHeight;
-		}
-		
+		int orgImageWidth = m_image.GetWidth();
+		int orgImageHeight = m_image.GetHeight();
+	
+		int imageWidth = m_image.GetWidth();
+		int imageHeight = m_image.GetHeight();
 
+
+		
+		float widthRatio = 1.0f;
+		if (imageWidth > rectWidth)
+		{
+			widthRatio = rectWidth / (float)imageWidth;
+		}
+		float heightRatio = 1.0f;
+		if (imageHeight > rectHeight)
+		{
+			heightRatio = rectHeight / (float)imageHeight;
+		}
+
+		const float ratio = widthRatio < heightRatio ? widthRatio : heightRatio;
+
+		//if (imageWidth > imageHeight)   
+		//{
+		//	if (imageWidth > rectWidth)
+		//	ratio = rectWidth / (float)imageWidth;
+		//}
+		//else 
+		//{
+		//	if(imageHeight > rectHeight)
+		//	ratio = rectHeight / (float)imageHeight;
+		//}
+		
+		std::cout << "imageWidht:" << imageWidth << "imageHeight:" << imageHeight  << std::endl;
 		imageHeight = imageHeight * ratio * m_expandRatio;
 		imageWidth = imageWidth * ratio * m_expandRatio;
+
 		int screenOrgX = (rectWidth - imageWidth) / 2;
 		int screenOrgY = (rectHeight - imageHeight) / 2; 
 
 
 		CPoint offset = m_curMoveOffset;
-
-		if (screenOrgX < 0) {
+		std::cout << "offset.x:" << offset.x << "offset.y:" << offset.y << std::endl;
+		std::cout << "screenOrgX:" << screenOrgX << "screenOrgY:" << screenOrgY << std::endl;
+		//if (screenOrgX < 0) {
 			screenOrgX += offset.x;
-		}
-		if (screenOrgY < 0) {
+		//}
+		//if (screenOrgY < 0) {
 			screenOrgY += offset.y;
-		}
+		//}
 
 		CDC memDC;
 		CBitmap memBitmap;
@@ -248,16 +287,34 @@ void CImageCatDlg::drawImage()
 		memBitmap.DeleteObject();
 		memDC.DeleteDC();
 	}
+	else
+	{
+		CDC memDC;
+		CBitmap memBitmap;
+		memDC.CreateCompatibleDC(NULL);
+		memBitmap.CreateCompatibleBitmap(&dc, rectWidth, rectHeight);
+		CBitmap* pOldBit = memDC.SelectObject(&memBitmap);
+		memDC.FillSolidRect(0, 0, rectWidth, rectHeight, RGB(255, 255, 255));
+		dc.BitBlt(0, 0, rectWidth, rectHeight, &memDC, 0, 0, SRCCOPY);
+		memBitmap.DeleteObject();
+		memDC.DeleteDC();
+
+		//设置字体
+		dc.SetTextColor(RGB(255, 0, 0));
+
+		dc.TextOutW(rectWidth / 2, rectHeight / 2, _T("不支持的图片格式！"));
+	}
 }
 
-bool CImageCatDlg::isFileFormatImage(CString fileName)
+bool CImageCatDlg::isSupportFileFormatImage(CString fileName)
 {
 	CString suffix = fileName.Right(fileName.GetLength() - fileName.ReverseFind('.'));
 	if (suffix == ".png"
 		|| suffix == ".jpg"
 		|| suffix == ".png"
 		|| suffix == ".bmp"
-		|| suffix == ".gif")
+		|| suffix == ".gif"
+		|| suffix == ".jpeg")
 	{
 		return true;
 	}
@@ -299,7 +356,7 @@ void CImageCatDlg::storageAllImageNameFromPath(CString path)
 		bool fileAttribute = GetFileAttributes(fullPath) & FILE_ATTRIBUTE_DIRECTORY;
 		if (!fileAttribute)
 		{
-			if (isFileFormatImage(fileName))
+			if (isSupportFileFormatImage(fileName))
 			{
 				m_ImageNameArray.push_back(fullPath);
 			}
@@ -311,7 +368,7 @@ void CImageCatDlg::storageAllImageNameFromPath(CString path)
 			bool fileAttribute = GetFileAttributes(fullPath) & FILE_ATTRIBUTE_DIRECTORY;
 			if (!fileAttribute)
 			{
-				if (isFileFormatImage(fileName))
+				if (isSupportFileFormatImage(fileName))
 				{
 					m_ImageNameArray.push_back(fullPath);
 				}
@@ -336,6 +393,10 @@ void CImageCatDlg::setCurrentImageIndex()
 void CImageCatDlg::nextImage()
 {
 	const int imageCount = m_ImageNameArray.size();
+	if (imageCount == 0) 
+	{
+		return;
+	}
 	m_curentImageIndex++;
 	const int index = m_curentImageIndex % imageCount;
 	m_imagePath = m_ImageNameArray[index];
@@ -344,7 +405,7 @@ void CImageCatDlg::nextImage()
 	m_curMoveOffset = CPoint(0, 0);
 	m_delta = 0;
 	m_image.Destroy();
-	m_image.Load(m_imagePath);
+	loadImage();
 }
 
 void CImageCatDlg::prevImage()
@@ -371,7 +432,7 @@ void CImageCatDlg::prevImage()
 	m_curMoveOffset = CPoint(0, 0);
 	m_delta = 0;
 	m_image.Destroy();
-	m_image.Load(m_imagePath);
+	loadImage();
 }
 
 
@@ -379,19 +440,6 @@ void CImageCatDlg::prevImage()
 void CImageCatDlg::OnSize(UINT nType, int cx, int cy)
 {
 	CDialogEx::OnSize(nType, cx, cy);
-
-	// TODO: 在此处添加消息处理程序代码
-	if (nType == SIZE_RESTORED)
-	{
-		int iWidth = GetSystemMetrics(SM_CXSCREEN); //获取屏幕水平分辨率
-		int iHeight = GetSystemMetrics(SM_CYSCREEN); //获取屏幕垂直分辨率
-		CRect   rcTemp;
-		rcTemp.BottomRight() = CPoint(iWidth / 8 * 7, iHeight / 8 * 7);
-		rcTemp.TopLeft() = CPoint(iWidth / 8, iHeight / 8);
-		MoveWindow(&rcTemp);
-		std::cout << "CImageCatDlg::onSize size restored." << std::endl;
-	}
-
 	Invalidate();
 }
 
@@ -421,6 +469,7 @@ BOOL CImageCatDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 		{
 			m_expandRatio = 1.0f;
 		}
+
 
 		std::cout << "delta:" << m_delta << " expandRatio:" << m_expandRatio << std::endl;
 		Invalidate();
