@@ -65,6 +65,10 @@ void CImageCatDlg::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CImageCatDlg, CDialogEx)
+	ON_COMMAND(ID_TOOL_BAR_BTN_SAVE, onToolbarBtnSave)
+	ON_COMMAND(ID_TOOL_BAR_BTN_DELETE, onToolbarBtnDelete)
+	ON_COMMAND(ID_TOOL_BAR_BTN_ROTATE_CCW, onToolbarBtnRotateCCW)
+	ON_COMMAND(ID_TOOL_BAR_BTN_ROTATE_CW, onToolbarBtnRotateCW)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
@@ -196,6 +200,44 @@ void CImageCatDlg::OnPaint()
 HCURSOR CImageCatDlg::OnQueryDragIcon()
 {
 	return static_cast<HCURSOR>(m_hIcon);
+}
+
+void CImageCatDlg::onToolbarBtnSave()
+{
+	std::cout << "CImageCatDlg::onToolbarBtnSave" << std::endl;
+	//保存功能
+	
+	CString file = m_imagePath.Right(m_imagePath.GetLength() - m_imagePath.ReverseFind(_T('\\')) - 1);
+	CString fileName = file.Left(file.ReverseFind(_T('.')));
+	CString fileSuffix = file.Right(file.GetLength() - file.ReverseFind(_T('.')) - 1);
+	CString newFileName = fileName + _T("(1).") + fileSuffix;
+	CString filter = _T("*.") + fileSuffix + _T("||");
+	CFileDialog dlg(FALSE, NULL, LPCTSTR(newFileName), OFN_HIDEREADONLY, filter);
+	if (dlg.DoModal() == IDOK)
+	{
+		CString str;
+		str = dlg.GetPathName();
+		if (str.Find(fileSuffix) == -1) // 确保用户输入正确
+		{
+			str += _T(".") + fileSuffix;
+		}
+		CopyFileW(m_imagePath, str, true);
+	}
+}
+
+void CImageCatDlg::onToolbarBtnDelete()
+{
+	std::cout << "CImageCatDlg::onToolbarBtnDelete" << std::endl;
+}
+
+void CImageCatDlg::onToolbarBtnRotateCCW()
+{
+	std::cout << "CImageCatDlg::onToolbarBtnRotateCCW" << std::endl;
+}
+
+void CImageCatDlg::onToolbarBtnRotateCW()
+{
+	std::cout << "CImageCatDlg::onToolbarBtnRotateCW" << std::endl;
 }
 
 

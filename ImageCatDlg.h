@@ -40,6 +40,10 @@ protected:
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnPaint();
 	afx_msg HCURSOR OnQueryDragIcon();
+	afx_msg void onToolbarBtnSave();
+	afx_msg void onToolbarBtnDelete();
+	afx_msg void onToolbarBtnRotateCCW();
+	afx_msg void onToolbarBtnRotateCW();
 	DECLARE_MESSAGE_MAP()
 
 private:
