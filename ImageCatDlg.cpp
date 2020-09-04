@@ -228,6 +228,12 @@ void CImageCatDlg::onToolbarBtnSave()
 void CImageCatDlg::onToolbarBtnDelete()
 {
 	std::cout << "CImageCatDlg::onToolbarBtnDelete" << std::endl;
+	if (MessageBox(_T("是否要删除文件？"), _T("删除"), MB_ICONEXCLAMATION | MB_OKCANCEL) == IDOK)
+	{
+		std::cout << "删除了文件:" << m_imagePath << std::endl;
+		DeleteFile(m_imagePath);
+		nextImage();
+	}
 }
 
 void CImageCatDlg::onToolbarBtnRotateCCW()
