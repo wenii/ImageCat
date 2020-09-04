@@ -33,6 +33,9 @@
     <ClInclude Include="pch.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="CCanvasDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ImageCat.cpp">
@@ -42,6 +45,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="pch.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CCanvasDlg.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -57,6 +63,42 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\ImageCat.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\toolbar1.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\Delete.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\Pin.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\Save image.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\..\..\..\..\bmp\bmp\32x32\bitmap2.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\..\..\..\..\bmp\bmp\32x32\Delete.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\..\..\..\..\bmp\bmp\32x32\Save image.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\..\..\..\..\bmp\bmp\32x32\Pin.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\bitmap2.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\Rotate CCW.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\Rotate CW.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\Cut.bmp">
       <Filter>资源文件</Filter>
     </Image>
   </ItemGroup>

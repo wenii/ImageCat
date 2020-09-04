@@ -187,6 +187,7 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CCanvasDlg.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ImageCat.h" />
     <ClInclude Include="ImageCatDlg.h" />
@@ -195,6 +196,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CCanvasDlg.cpp" />
     <ClCompile Include="ImageCat.cpp" />
     <ClCompile Include="ImageCatDlg.cpp" />
     <ClCompile Include="pch.cpp">
@@ -211,7 +213,19 @@
     <None Include="res\ImageCat.rc2" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\..\..\..\..\bmp\bmp\32x32\bitmap2.bmp" />
+    <Image Include="..\..\..\..\..\bmp\bmp\32x32\Delete.bmp" />
+    <Image Include="..\..\..\..\..\bmp\bmp\32x32\Pin.bmp" />
+    <Image Include="..\..\..\..\..\bmp\bmp\32x32\Save image.bmp" />
+    <Image Include="res\bitmap2.bmp" />
+    <Image Include="res\Cut.bmp" />
+    <Image Include="res\Delete.bmp" />
     <Image Include="res\ImageCat.ico" />
+    <Image Include="res\Pin.bmp" />
+    <Image Include="res\Rotate CCW.bmp" />
+    <Image Include="res\Rotate CW.bmp" />
+    <Image Include="res\Save image.bmp" />
+    <Image Include="res\toolbar1.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

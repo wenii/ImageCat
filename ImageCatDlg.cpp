@@ -7,6 +7,7 @@
 #include "ImageCat.h"
 #include "ImageCatDlg.h"
 #include "afxdialogex.h"
+#include "resource.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -53,11 +54,7 @@ END_MESSAGE_MAP()
 // CImageCatDlg 对话框
 CImageCatDlg::CImageCatDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_IMAGECAT_DIALOG, pParent)
-	, m_expandRatio(1.0f)
-	, m_ctrlKeyPress(false)
 	, m_curentImageIndex(0)
-	, m_delta(0)
-	, m_loadSuccess(false)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -115,6 +112,13 @@ BOOL CImageCatDlg::OnInitDialog()
 
 	// TODO: 在此添加额外的初始化代码
 
+	// 初始化工具栏
+	initToolbar();
+
+	// 初始化画布
+	m_canvas.Create(IDD_DIALOG_CANVAS, NULL);
+	m_canvas.ShowWindow(SW_SHOW);
+
 	CString arg = getCommandLineArg();
 	if (arg == _T(""))
 	{
@@ -130,7 +134,7 @@ BOOL CImageCatDlg::OnInitDialog()
 	if (isSupportFileFormatImage(m_imagePath))
 	{
 		// 加载图片
-		loadImage();
+		m_canvas.loadImage(m_imagePath);
 
 		// 最大化窗口
 		ShowWindow(SW_MAXIMIZE);
@@ -182,7 +186,7 @@ void CImageCatDlg::OnPaint()
 	}
 	else
 	{
-		drawImage();
+		//drawImage();
 		CDialogEx::OnPaint();
 	}
 }
@@ -194,117 +198,6 @@ HCURSOR CImageCatDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-void CImageCatDlg::loadImage()
-{
-	HRESULT result = m_image.Load(m_imagePath);
-	if (result == 0)
-	{
-		m_loadSuccess = true;
-	}
-	else
-	{
-		m_loadSuccess = false;
-	}
-}
-
-// 绘制图片
-void CImageCatDlg::drawImage()
-{
-	if (m_imagePath == _T("")) 
-	{
-		return;
-	}
-	CPaintDC dc(this); // device context for painting
-
-	CRect		rect;
-	GetClientRect(&rect);
-	
-	int rectWidth = rect.Width();
-	int rectHeight = rect.Height();
-
-	if(m_loadSuccess)
-	{
-		int orgImageWidth = m_image.GetWidth();
-		int orgImageHeight = m_image.GetHeight();
-	
-		int imageWidth = m_image.GetWidth();
-		int imageHeight = m_image.GetHeight();
-
-
-		
-		float widthRatio = 1.0f;
-		if (imageWidth > rectWidth)
-		{
-			widthRatio = rectWidth / (float)imageWidth;
-		}
-		float heightRatio = 1.0f;
-		if (imageHeight > rectHeight)
-		{
-			heightRatio = rectHeight / (float)imageHeight;
-		}
-
-		const float ratio = widthRatio < heightRatio ? widthRatio : heightRatio;
-
-		//if (imageWidth > imageHeight)   
-		//{
-		//	if (imageWidth > rectWidth)
-		//	ratio = rectWidth / (float)imageWidth;
-		//}
-		//else 
-		//{
-		//	if(imageHeight > rectHeight)
-		//	ratio = rectHeight / (float)imageHeight;
-		//}
-		
-		std::cout << "imageWidht:" << imageWidth << "imageHeight:" << imageHeight  << std::endl;
-		imageHeight = imageHeight * ratio * m_expandRatio;
-		imageWidth = imageWidth * ratio * m_expandRatio;
-
-		int screenOrgX = (rectWidth - imageWidth) / 2;
-		int screenOrgY = (rectHeight - imageHeight) / 2; 
-
-
-		CPoint offset = m_curMoveOffset;
-		std::cout << "offset.x:" << offset.x << "offset.y:" << offset.y << std::endl;
-		std::cout << "screenOrgX:" << screenOrgX << "screenOrgY:" << screenOrgY << std::endl;
-		//if (screenOrgX < 0) {
-			screenOrgX += offset.x;
-		//}
-		//if (screenOrgY < 0) {
-			screenOrgY += offset.y;
-		//}
-
-		CDC memDC;
-		CBitmap memBitmap;
-		memDC.CreateCompatibleDC(NULL);
-		memBitmap.CreateCompatibleBitmap(&dc, rectWidth, rectHeight);
-		CBitmap* pOldBit = memDC.SelectObject(&memBitmap);
-		memDC.FillSolidRect(0, 0, rectWidth, rectHeight, RGB(255, 255, 255));  
-		
-		SetStretchBltMode(memDC, STRETCH_HALFTONE);
-		m_image.StretchBlt(memDC, screenOrgX, screenOrgY, imageWidth, imageHeight, 0, 0, m_image.GetWidth(), m_image.GetHeight());
-		dc.BitBlt(0, 0, rectWidth, rectHeight, &memDC, 0, 0, SRCCOPY);
-		memBitmap.DeleteObject();
-		memDC.DeleteDC();
-	}
-	else
-	{
-		CDC memDC;
-		CBitmap memBitmap;
-		memDC.CreateCompatibleDC(NULL);
-		memBitmap.CreateCompatibleBitmap(&dc, rectWidth, rectHeight);
-		CBitmap* pOldBit = memDC.SelectObject(&memBitmap);
-		memDC.FillSolidRect(0, 0, rectWidth, rectHeight, RGB(255, 255, 255));
-		dc.BitBlt(0, 0, rectWidth, rectHeight, &memDC, 0, 0, SRCCOPY);
-		memBitmap.DeleteObject();
-		memDC.DeleteDC();
-
-		//设置字体
-		dc.SetTextColor(RGB(255, 0, 0));
-
-		dc.TextOutW(rectWidth / 2, rectHeight / 2, _T("不支持的图片格式！"));
-	}
-}
 
 bool CImageCatDlg::isSupportFileFormatImage(CString fileName)
 {
@@ -320,6 +213,50 @@ bool CImageCatDlg::isSupportFileFormatImage(CString fileName)
 	}
 	return false;
 }
+
+void CImageCatDlg::initToolbar()
+{
+	if (m_toolBar.CreateEx(this, TBSTYLE_FLAT, WS_CHILD | WS_VISIBLE | CBRS_ALIGN_ANY | CBRS_TOOLTIPS))
+	{
+
+		static UINT BASED_CODE DockTool[] = { ID_TOOL_BAR_BTN_SAVE, ID_TOOL_BAR_BTN_PIN, ID_TOOL_BAR_BTN_DELETE, ID_TOOL_BAR_BTN_ROTATE_CCW , ID_TOOL_BAR_BTN_ROTATE_CW, ID_TOOL_BAR_BTN_CUT };
+		CBitmap bitmap;
+		bitmap.LoadBitmapW(IDB_BITMAP_SAVE);
+		m_toolbarlist.Create(32, 32, ILC_COLOR24, 0, 0);
+		m_toolbarlist.Add(&bitmap, (CBitmap*)NULL);
+		CBitmap bitmapPin;
+		bitmapPin.LoadBitmapW(IDB_BITMAP_PIN);
+		m_toolbarlist.Add(&bitmapPin, (CBitmap*)NULL);
+		CBitmap bitmapDelete;
+		bitmapDelete.LoadBitmapW(IDB_BITMAP_DELETE);
+		m_toolbarlist.Add(&bitmapDelete, (CBitmap*)NULL);
+		CBitmap bitmapRotateCCW;
+		bitmapRotateCCW.LoadBitmapW(IDB_BITMAP_ROTATE_CCW);
+		m_toolbarlist.Add(&bitmapRotateCCW, (CBitmap*)NULL);
+		CBitmap bitmapRotateCW;
+		bitmapRotateCW.LoadBitmapW(IDB_BITMAP_ROTATE_CW);
+		m_toolbarlist.Add(&bitmapRotateCW, (CBitmap*)NULL);
+		CBitmap bitmapCut;
+		bitmapCut.LoadBitmapW(IDB_BITMAP_CUT);
+		m_toolbarlist.Add(&bitmapCut, (CBitmap*)NULL);
+
+		//设置工具栏按钮图片
+		m_toolBar.GetToolBarCtrl().SetImageList(&m_toolbarlist);
+		//设置工具栏按钮大小， 和按钮中位图大小
+		SIZE sbutton, sImage;
+		sbutton.cx = 48;
+		sbutton.cy = 48;
+		sImage.cx = 32;
+		sImage.cy = 32;
+		m_toolBar.SetSizes(sbutton, sImage);
+		m_toolBar.SetButtons(DockTool, (UINT)6);
+
+		m_toolbarWidth = 6 * 48;
+		m_toolbarHeight = 48;
+	}
+}
+
+
 
 CString CImageCatDlg::getCommandLineArg()
 {
@@ -401,11 +338,7 @@ void CImageCatDlg::nextImage()
 	const int index = m_curentImageIndex % imageCount;
 	m_imagePath = m_ImageNameArray[index];
 	SetWindowText(m_imagePath);
-	m_expandRatio = 1.0f;
-	m_curMoveOffset = CPoint(0, 0);
-	m_delta = 0;
-	m_image.Destroy();
-	loadImage();
+	m_canvas.loadImage(m_imagePath);
 }
 
 void CImageCatDlg::prevImage()
@@ -428,19 +361,29 @@ void CImageCatDlg::prevImage()
 	const int index = m_curentImageIndex % imageCount;
 	m_imagePath = m_ImageNameArray[index];
 	SetWindowText(m_imagePath);
-	m_expandRatio = 1.0f;
-	m_curMoveOffset = CPoint(0, 0);
-	m_delta = 0;
-	m_image.Destroy();
-	loadImage();
-}
+	m_canvas.loadImage(m_imagePath);
+} 
 
 
 
 void CImageCatDlg::OnSize(UINT nType, int cx, int cy)
 {
 	CDialogEx::OnSize(nType, cx, cy);
-	Invalidate();
+
+	CRect		rect;
+	GetClientRect(&rect);
+	if (m_toolBar.GetSafeHwnd() != NULL)
+	{
+		int	toolbarX = (rect.Width() - m_toolbarWidth) / 2;
+		int toolbarY = rect.Height() - m_toolbarHeight;
+		CRect toolBarRect;
+		m_toolBar.GetWindowRect(&toolBarRect);
+		m_toolBar.SetWindowPos(NULL, toolbarX, toolbarY, m_toolbarWidth, m_toolbarHeight, 0);
+	}
+	if (m_canvas.GetSafeHwnd() != NULL)
+	{
+		m_canvas.SetWindowPos(NULL, 0, 0, rect.Width(), rect.Height() - m_toolbarHeight, 0);
+	}
 }
 
 
@@ -448,33 +391,8 @@ BOOL CImageCatDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	std::cout << "[OnMouseWheel]  x:" << pt.x << " y:" << pt.y << " zDelta:" << zDelta << " nFlags:" << nFlags << std::endl;
-	if (nFlags & MK_CONTROL)
-	{
-		const int maxDelta = 12000;
-		m_delta += zDelta;
-		if (m_delta > maxDelta)
-		{
-			m_delta = maxDelta;
-		}
-		else if (m_delta < 0)
-		{
-			m_delta = 0;
-		}
-
-		if ((m_delta >= 0 && m_delta <= maxDelta))
-		{
-			m_expandRatio = m_delta / float(maxDelta) * 8.0f + 1.0;
-		}
-		else
-		{
-			m_expandRatio = 1.0f;
-		}
-
-
-		std::cout << "delta:" << m_delta << " expandRatio:" << m_expandRatio << std::endl;
-		Invalidate();
-	}
-	else
+	
+	if (!(nFlags & MK_CONTROL))
 	{
 		if (zDelta < 0)
 		{
@@ -485,7 +403,6 @@ BOOL CImageCatDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 			prevImage();
 		}
 		
-		Invalidate();
 	}
 	
 	return CDialogEx::OnMouseWheel(nFlags, zDelta, pt);
@@ -495,11 +412,6 @@ BOOL CImageCatDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 void CImageCatDlg::OnMouseMove(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
-	if (nFlags & MK_LBUTTON) {
-		m_curMoveOffset += point - m_curMousePoint;
-		m_curMousePoint = point;
-		Invalidate();
-	}
 	CDialogEx::OnMouseMove(nFlags, point);
 }
 
@@ -509,8 +421,7 @@ void CImageCatDlg::OnMouseMove(UINT nFlags, CPoint point)
 BOOL CImageCatDlg::OnEraseBkgnd(CDC* pDC)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
-	return true;
-	//return CDialogEx::OnEraseBkgnd(pDC);
+	return CDialogEx::OnEraseBkgnd(pDC);
 }
 
 
@@ -519,7 +430,6 @@ void CImageCatDlg::OnLButtonDown(UINT nFlags, CPoint point)
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 
 	std::cout << "onLButtonDown::x:" << point.x << " y:" << point.y << std::endl;
-	m_curMousePoint = point;
 	CDialogEx::OnLButtonDown(nFlags, point);
 }
 
@@ -538,10 +448,6 @@ void CImageCatDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	std::cout << "OnLButtonDblClk------------" << std::endl;
-	m_expandRatio = 1.0f;
-	m_curMoveOffset = CPoint(0, 0);
-	m_delta = 0;
-	Invalidate();
 	CDialogEx::OnLButtonDblClk(nFlags, point);
 }
 
@@ -555,12 +461,10 @@ BOOL CImageCatDlg::PreTranslateMessage(MSG* pMsg)
 		{
 			std::cout << "onKeyDown --------------" << std::endl;
 			nextImage();
-			Invalidate();
 		}
 		else if (pMsg->wParam == VK_UP)
 		{
 			prevImage();
-			Invalidate();
 		}
 	}
 	return CDialogEx::PreTranslateMessage(pMsg);

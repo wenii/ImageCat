@@ -4,7 +4,7 @@
 
 #pragma once
 #include <vector>
-
+#include "CCanvasDlg.h"
 
 // CImageCatDlg 对话框
 class CImageCatDlg : public CDialogEx
@@ -22,17 +22,14 @@ public:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV 支持
 
 private:
-	// 放大因子
-	float m_expandRatio;
-	CPoint m_curMousePoint;
-	CPoint m_curMoveOffset;
-	bool m_ctrlKeyPress;
 	CString m_imagePath;
 	std::vector<CString> m_ImageNameArray;
 	int m_curentImageIndex;
-	int m_delta;
-	CImage m_image;
-	bool m_loadSuccess;
+	CToolBar m_toolBar;
+	CImageList m_toolbarlist;		//图标链表
+	int m_toolbarWidth;
+	int m_toolbarHeight;
+	CCanvasDlg m_canvas;
 	 
 // 实现
 protected:
@@ -46,8 +43,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 private:
-	void loadImage();
-	void drawImage();
+	void initToolbar();
 	CString getCommandLineArg();
 	void storageAllImageNameFromPath(CString path);
 	bool isSupportFileFormatImage(CString fileName);
