@@ -40,6 +40,10 @@ CImageCatApp theApp;
 
 BOOL CImageCatApp::InitInstance()
 {
+	m_gdiplusToken = 0;
+	Gdiplus::GdiplusStartupInput gpSI;
+	Gdiplus::GdiplusStartup(&m_gdiplusToken, &gpSI, NULL);
+
 	// 如果一个运行在 Windows XP 上的应用程序清单指定要
 	// 使用 ComCtl32.dll 版本 6 或更高版本来启用可视化方式，
 	//则需要 InitCommonControlsEx()。  否则，将无法创建窗口。
@@ -110,5 +114,11 @@ BOOL CImageCatApp::InitInstance()
 	// 由于对话框已关闭，所以将返回 FALSE 以便退出应用程序，
 	//  而不是启动应用程序的消息泵。
 	return FALSE;
+}
+
+int CImageCatApp::ExitInstance()
+{
+	Gdiplus::GdiplusShutdown(m_gdiplusToken);
+	return __super::ExitInstance();
 }
 

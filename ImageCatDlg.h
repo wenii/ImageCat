@@ -5,6 +5,7 @@
 #pragma once
 #include <vector>
 #include "CCanvasDlg.h"
+#include "CMaskDlg.h"
 
 // CImageCatDlg 对话框
 class CImageCatDlg : public CDialogEx
@@ -30,6 +31,7 @@ private:
 	int m_toolbarWidth;
 	int m_toolbarHeight;
 	CCanvasDlg m_canvas;
+	CMaskDlg m_mask;
 	 
 // 实现
 protected:
@@ -44,6 +46,7 @@ protected:
 	afx_msg void onToolbarBtnDelete();
 	afx_msg void onToolbarBtnRotateCCW();
 	afx_msg void onToolbarBtnRotateCW();
+	afx_msg void onToolbarBtnRotateCut();
 	DECLARE_MESSAGE_MAP()
 
 private:
@@ -63,4 +66,6 @@ public:
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
+	afx_msg LRESULT OnNcHitTest(CPoint point);
+	afx_msg void OnMove(int x, int y);
 };

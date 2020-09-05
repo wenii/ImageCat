@@ -47,6 +47,7 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 	ON_WM_ERASEBKGND()
 	ON_WM_LBUTTONDBLCLK()
+	ON_WM_PAINT()
 END_MESSAGE_MAP()
 
 
@@ -69,6 +70,7 @@ BEGIN_MESSAGE_MAP(CImageCatDlg, CDialogEx)
 	ON_COMMAND(ID_TOOL_BAR_BTN_DELETE, onToolbarBtnDelete)
 	ON_COMMAND(ID_TOOL_BAR_BTN_ROTATE_CCW, onToolbarBtnRotateCCW)
 	ON_COMMAND(ID_TOOL_BAR_BTN_ROTATE_CW, onToolbarBtnRotateCW)
+	ON_COMMAND(ID_TOOL_BAR_BTN_CUT, onToolbarBtnRotateCut)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
@@ -80,6 +82,8 @@ BEGIN_MESSAGE_MAP(CImageCatDlg, CDialogEx)
 	ON_WM_LBUTTONUP()
 	ON_WM_MBUTTONDBLCLK()
 	ON_WM_LBUTTONDBLCLK()
+	ON_WM_NCHITTEST()
+	ON_WM_MOVE()
 END_MESSAGE_MAP()
 
 
@@ -122,6 +126,11 @@ BOOL CImageCatDlg::OnInitDialog()
 	// 初始化画布
 	m_canvas.Create(IDD_DIALOG_CANVAS, NULL);
 	m_canvas.ShowWindow(SW_SHOW);
+
+	// 初始化蒙板
+	m_mask.Create(IDD_DIALOG_MASK, this);
+	m_mask.ShowWindow(SW_HIDE);
+	m_mask.setCDC(m_canvas.getMemDC());
 
 	CString arg = getCommandLineArg();
 	if (arg == _T(""))
@@ -273,6 +282,20 @@ void CImageCatDlg::onToolbarBtnRotateCW()
 	std::cout << "CImageCatDlg::onToolbarBtnRotateCW" << std::endl;
 	m_canvas.rotation(90);
 }
+void CImageCatDlg::onToolbarBtnRotateCut()
+{
+	std::cout << "CImageCatDlg::onToolbarBtnRotateCW" << std::endl;
+	CRect		rect;
+	GetClientRect(&rect);
+	CRect screenRect = rect;
+	ClientToScreen(&screenRect);
+	m_mask.SetWindowPos(&m_canvas, screenRect.TopLeft().x, screenRect.TopLeft().y, screenRect.Width(), screenRect.Height() - m_toolbarHeight, 0);
+	m_mask.ShowWindow(SW_SHOW);
+
+	// 保存当前客户去图像
+
+}
+
 
 
 bool CImageCatDlg::isSupportFileFormatImage(CString fileName)
@@ -459,6 +482,12 @@ void CImageCatDlg::OnSize(UINT nType, int cx, int cy)
 	{
 		m_canvas.SetWindowPos(NULL, 0, 0, rect.Width(), rect.Height() - m_toolbarHeight, 0);
 	}
+	if (m_mask.GetSafeHwnd() != NULL)
+	{
+		CRect screenRect = rect;
+		ClientToScreen(&screenRect);
+		m_mask.SetWindowPos(NULL, screenRect.TopLeft().x, screenRect.TopLeft().y, screenRect.Width(), screenRect.Height() - m_toolbarHeight, 0);
+	}
 }
 
 
@@ -543,4 +572,26 @@ BOOL CImageCatDlg::PreTranslateMessage(MSG* pMsg)
 		}
 	}
 	return CDialogEx::PreTranslateMessage(pMsg);
+}
+
+
+LRESULT CImageCatDlg::OnNcHitTest(CPoint point)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+
+	return CDialogEx::OnNcHitTest(point);
+}
+
+
+void CImageCatDlg::OnMove(int x, int y)
+{
+	CDialogEx::OnMove(x, y);
+	if (m_mask.GetSafeHwnd() != NULL)
+	{
+		CRect		rect;
+		GetClientRect(&rect);
+		CRect screenRect = rect;
+		ClientToScreen(&screenRect);
+		m_mask.SetWindowPos(NULL, screenRect.TopLeft().x, screenRect.TopLeft().y, screenRect.Width(), screenRect.Height() - m_toolbarHeight, 0);
+	}
 }

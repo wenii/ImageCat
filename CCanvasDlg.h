@@ -12,6 +12,9 @@ public:
 	virtual ~CCanvasDlg();
 
 private:
+	CDC m_memDC;
+	CDC m_scrDC;
+	CBitmap m_memBitmap;
 	float m_expandRatio;
 	CPoint m_curMousePoint;
 	CPoint m_curMoveOffset;
@@ -27,6 +30,7 @@ public:
 	void loadImage(const CString& path);
 	void rotation(int angle);
 	void saveFile(const CString& fileName);
+	CDC* getMemDC();
 private:
 	void drawImage();
 	void imageRotation(CImage* dst, CImage* src, int angle);
@@ -48,4 +52,5 @@ public:
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
+	virtual BOOL OnInitDialog();
 };

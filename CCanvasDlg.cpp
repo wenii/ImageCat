@@ -20,7 +20,7 @@ CCanvasDlg::CCanvasDlg(CWnd* pParent /*=nullptr*/)
 	, m_toolbarWidth(0)
 	, m_toolbarHeight(0)
 {
-
+	m_scrDC.CreateDC(_T("DISPLAY"), NULL, NULL, NULL);
 }
 
 CCanvasDlg::~CCanvasDlg()
@@ -85,6 +85,11 @@ void CCanvasDlg::rotation(int angle)
 void CCanvasDlg::saveFile(const CString& fileName)
 {
 	m_image.Save(fileName);
+}
+
+CDC* CCanvasDlg::getMemDC()
+{
+	return &m_memDC;
 }
 
 // 绘制图片
@@ -167,6 +172,19 @@ void CCanvasDlg::drawImage()
 		m_image.StretchBlt(memDC, screenOrgX, screenOrgY, imageWidth, imageHeight, 0, 0, m_image.GetWidth(), m_image.GetHeight());
 
 		dc.BitBlt(0, 0, rectWidth, rectHeight, &memDC, 0, 0, SRCCOPY);
+		
+		{
+			if (m_memDC.m_hDC == NULL)
+			{
+				m_memDC.CreateCompatibleDC(&m_scrDC);
+			}
+			m_memBitmap.DeleteObject();
+			m_memBitmap.CreateCompatibleBitmap(&m_scrDC, rectWidth, rectHeight);
+			m_memDC.SelectObject(m_memBitmap);
+			m_memDC.BitBlt(0, 0, rectWidth, rectHeight, &memDC, 0, 0, SRCCOPY);		/// 记录数据
+		}
+
+
 		memBitmap.DeleteObject();
 		memDC.DeleteDC();
 	}
@@ -198,6 +216,7 @@ void CCanvasDlg::OnSize(UINT nType, int cx, int cy)
 	CDialogEx::OnSize(nType, cx, cy);
 	
 	// TODO: 在此处添加消息处理程序代码
+
 	Invalidate();
 }
 
@@ -338,4 +357,16 @@ void CCanvasDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 	m_delta = 0;
 	Invalidate();
 	CDialogEx::OnLButtonDblClk(nFlags, point);
+}
+
+
+BOOL CCanvasDlg::OnInitDialog()
+{
+	CDialogEx::OnInitDialog();
+
+	// TODO:  在此添加额外的初始化
+
+	
+	return TRUE;  // return TRUE unless you set the focus to a control
+				  // 异常: OCX 属性页应返回 FALSE
 }

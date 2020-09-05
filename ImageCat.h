@@ -10,7 +10,8 @@
 
 #include "resource.h"		// 主符号
 
-
+#include <Gdiplus.h> //引入头函数 
+#pragma comment(lib, "Gdiplus.lib")  // 引入链接库
 // CImageCatApp:
 // 有关此类的实现，请参阅 ImageCat.cpp
 //
@@ -23,6 +24,10 @@ public:
 // 重写
 public:
 	virtual BOOL InitInstance();
+	virtual int ExitInstance();
+
+private:
+	ULONG_PTR m_gdiplusToken;
 
 // 实现
 

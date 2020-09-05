@@ -188,6 +188,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CCanvasDlg.h" />
+    <ClInclude Include="CMaskDlg.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ImageCat.h" />
     <ClInclude Include="ImageCatDlg.h" />
@@ -197,6 +198,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CCanvasDlg.cpp" />
+    <ClCompile Include="CMaskDlg.cpp" />
     <ClCompile Include="ImageCat.cpp" />
     <ClCompile Include="ImageCatDlg.cpp" />
     <ClCompile Include="pch.cpp">
