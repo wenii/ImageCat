@@ -25,8 +25,11 @@ private:
 
 public:
 	void loadImage(const CString& path);
+	void rotation(int angle);
+	void saveFile(const CString& fileName);
 private:
 	void drawImage();
+	void imageRotation(CImage* dst, CImage* src, int angle);
 
 // 对话框数据
 #ifdef AFX_DESIGN_TIME

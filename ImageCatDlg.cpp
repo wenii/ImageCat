@@ -210,18 +210,44 @@ void CImageCatDlg::onToolbarBtnSave()
 	CString file = m_imagePath.Right(m_imagePath.GetLength() - m_imagePath.ReverseFind(_T('\\')) - 1);
 	CString fileName = file.Left(file.ReverseFind(_T('.')));
 	CString fileSuffix = file.Right(file.GetLength() - file.ReverseFind(_T('.')) - 1);
-	CString newFileName = fileName + _T("(1).") + fileSuffix;
-	CString filter = _T("*.") + fileSuffix + _T("||");
-	CFileDialog dlg(FALSE, NULL, LPCTSTR(newFileName), OFN_HIDEREADONLY, filter);
+	CString formatArray[5] = { _T(".jpg"), _T(".jpg"), _T(".jpeg"), _T(".bmp"), _T(".png") };
+	CString filter = _T(".jpg||.jpeg||.bmp||.png||");
+	if (fileSuffix == _T(".jpg"))
+	{
+		filter = _T(".jpg||.jpeg||.bmp||.png||");
+	}
+	else if (fileSuffix == _T("jpeg"))
+	{
+		filter = _T(".jpeg||.jpg||.bmp||.png||");
+		formatArray[1] = _T(".jpeg");
+		formatArray[2] = _T(".jpg");
+		formatArray[3] = _T(".bmp");
+		formatArray[4] = _T(".png");
+	}
+	else if (fileSuffix == _T("bmp"))
+	{
+		filter = _T(".bmp||.jpg||.jpeg||.png||");
+		formatArray[1] = _T(".bmp");
+		formatArray[2] = _T(".jpg");
+		formatArray[3] = _T(".jpeg");
+		formatArray[4] = _T(".png");
+	}
+	else if (fileSuffix == _T("png"))
+	{
+		filter = _T(".png||.jpg||.jpeg||.bmp||");
+		formatArray[1] = _T(".png");
+		formatArray[2] = _T(".jpg");
+		formatArray[3] = _T(".jpeg");
+		formatArray[4] = _T(".bmp");
+	}
+
+	CFileDialog dlg(FALSE, NULL, LPCTSTR(fileName), OFN_HIDEREADONLY, filter);
 	if (dlg.DoModal() == IDOK)
 	{
-		CString str;
-		str = dlg.GetPathName();
-		if (str.Find(fileSuffix) == -1) // 确保用户输入正确
-		{
-			str += _T(".") + fileSuffix;
-		}
-		CopyFileW(m_imagePath, str, true);
+		CString name = dlg.GetPathName();
+		CString suffix = formatArray[dlg.m_ofn.nFilterIndex];
+
+		m_canvas.saveFile(name + suffix);
 	}
 }
 
@@ -239,11 +265,13 @@ void CImageCatDlg::onToolbarBtnDelete()
 void CImageCatDlg::onToolbarBtnRotateCCW()
 {
 	std::cout << "CImageCatDlg::onToolbarBtnRotateCCW" << std::endl;
+	m_canvas.rotation(-90);
 }
 
 void CImageCatDlg::onToolbarBtnRotateCW()
 {
 	std::cout << "CImageCatDlg::onToolbarBtnRotateCW" << std::endl;
+	m_canvas.rotation(90);
 }
 
 
@@ -252,7 +280,6 @@ bool CImageCatDlg::isSupportFileFormatImage(CString fileName)
 	CString suffix = fileName.Right(fileName.GetLength() - fileName.ReverseFind('.'));
 	if (suffix == ".png"
 		|| suffix == ".jpg"
-		|| suffix == ".png"
 		|| suffix == ".bmp"
 		|| suffix == ".gif"
 		|| suffix == ".jpeg")
@@ -267,14 +294,14 @@ void CImageCatDlg::initToolbar()
 	if (m_toolBar.CreateEx(this, TBSTYLE_FLAT, WS_CHILD | WS_VISIBLE | CBRS_ALIGN_ANY | CBRS_TOOLTIPS))
 	{
 
-		static UINT BASED_CODE DockTool[] = { ID_TOOL_BAR_BTN_SAVE, ID_TOOL_BAR_BTN_PIN, ID_TOOL_BAR_BTN_DELETE, ID_TOOL_BAR_BTN_ROTATE_CCW , ID_TOOL_BAR_BTN_ROTATE_CW, ID_TOOL_BAR_BTN_CUT };
+		static UINT BASED_CODE DockTool[] = { ID_TOOL_BAR_BTN_SAVE, ID_TOOL_BAR_BTN_DELETE, ID_TOOL_BAR_BTN_ROTATE_CCW , ID_TOOL_BAR_BTN_ROTATE_CW, ID_TOOL_BAR_BTN_CUT };
 		CBitmap bitmap;
 		bitmap.LoadBitmapW(IDB_BITMAP_SAVE);
 		m_toolbarlist.Create(32, 32, ILC_COLOR24, 0, 0);
 		m_toolbarlist.Add(&bitmap, (CBitmap*)NULL);
-		CBitmap bitmapPin;
+		/*CBitmap bitmapPin;
 		bitmapPin.LoadBitmapW(IDB_BITMAP_PIN);
-		m_toolbarlist.Add(&bitmapPin, (CBitmap*)NULL);
+		m_toolbarlist.Add(&bitmapPin, (CBitmap*)NULL);*/
 		CBitmap bitmapDelete;
 		bitmapDelete.LoadBitmapW(IDB_BITMAP_DELETE);
 		m_toolbarlist.Add(&bitmapDelete, (CBitmap*)NULL);
@@ -297,9 +324,9 @@ void CImageCatDlg::initToolbar()
 		sImage.cx = 32;
 		sImage.cy = 32;
 		m_toolBar.SetSizes(sbutton, sImage);
-		m_toolBar.SetButtons(DockTool, (UINT)6);
+		m_toolBar.SetButtons(DockTool, (UINT)5);
 
-		m_toolbarWidth = 6 * 48;
+		m_toolbarWidth = 5 * 48;
 		m_toolbarHeight = 48;
 	}
 }
