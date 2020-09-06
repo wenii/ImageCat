@@ -14,6 +14,8 @@ IMPLEMENT_DYNAMIC(CMaskDlg, CDialogEx)
 CMaskDlg::CMaskDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_DIALOG_MASK, pParent)
 	, m_memCDC(NULL)
+	, m_toolbarWidth(0)
+	, m_toolbarHeight(0)
 	, m_finishCut(false)
 	, m_state(STATE_BEGIN)
 	, m_startResize(false)
@@ -59,6 +61,8 @@ BOOL CMaskDlg::OnInitDialog()
 
 	::SetWindowLong(m_hWnd, GWL_EXSTYLE, GetWindowLong(m_hWnd, GWL_EXSTYLE) | WS_EX_LAYERED);
 	::SetLayeredWindowAttributes(m_hWnd, 0, 200, LWA_ALPHA); // 120是透明度，范围是0～255
+
+	initToolbar();
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 异常: OCX 属性页应返回 FALSE
@@ -136,7 +140,6 @@ void CMaskDlg::OnPaint()
 					graphics.DrawEllipse(&blue, p.x - 2, p.y - 2, 4, 4);
 					
 				}
-
 			}
 
 			memDC.SelectObject(pOldPen);
@@ -146,6 +149,61 @@ void CMaskDlg::OnPaint()
 		dc.BitBlt(0, 0, rectWidth, rectHeight, &memDC, 0, 0, SRCCOPY);
 	}
 }
+
+void CMaskDlg::initToolbar()
+{
+	if (m_toolBar.CreateEx(this, TBSTYLE_FLAT, WS_CHILD | WS_VISIBLE | CBRS_ALIGN_ANY | CBRS_TOOLTIPS))
+	{
+
+		static UINT BASED_CODE DockTool[] = { ID_TOOL_BAR_BTN_SAVE, ID_TOOL_BAR_BTN_DELETE, ID_TOOL_BAR_BTN_ROTATE_CCW , ID_TOOL_BAR_BTN_ROTATE_CW, ID_TOOL_BAR_BTN_CUT };
+		CBitmap bitmap;
+		bitmap.LoadBitmapW(IDB_BITMAP_SAVE);
+		m_toolbarlist.Create(32, 32, ILC_COLOR24, 0, 0);
+		m_toolbarlist.Add(&bitmap, (CBitmap*)NULL);
+		/*CBitmap bitmapPin;
+		bitmapPin.LoadBitmapW(IDB_BITMAP_PIN);
+		m_toolbarlist.Add(&bitmapPin, (CBitmap*)NULL);*/
+		CBitmap bitmapDelete;
+		bitmapDelete.LoadBitmapW(IDB_BITMAP_DELETE);
+		m_toolbarlist.Add(&bitmapDelete, (CBitmap*)NULL);
+		CBitmap bitmapRotateCCW;
+		bitmapRotateCCW.LoadBitmapW(IDB_BITMAP_ROTATE_CCW);
+		m_toolbarlist.Add(&bitmapRotateCCW, (CBitmap*)NULL);
+		CBitmap bitmapRotateCW;
+		bitmapRotateCW.LoadBitmapW(IDB_BITMAP_ROTATE_CW);
+		m_toolbarlist.Add(&bitmapRotateCW, (CBitmap*)NULL);
+		CBitmap bitmapCut;
+		bitmapCut.LoadBitmapW(IDB_BITMAP_CUT);
+		m_toolbarlist.Add(&bitmapCut, (CBitmap*)NULL);
+
+		//设置工具栏按钮图片
+		m_toolBar.GetToolBarCtrl().SetImageList(&m_toolbarlist);
+		//设置工具栏按钮大小， 和按钮中位图大小
+		SIZE sbutton, sImage;
+		sbutton.cx = 48;
+		sbutton.cy = 48;
+		sImage.cx = 32;
+		sImage.cy = 32;
+		m_toolBar.SetSizes(sbutton, sImage);
+		m_toolBar.SetButtons(DockTool, (UINT)5);
+
+		m_toolbarWidth = 5 * 48;
+		m_toolbarHeight = 48;
+	}
+}
+
+void CMaskDlg::boxChanged()
+{
+	if (m_state == STATE_BOX_ADJUST)
+	{
+		// 修改toolbar 位置
+		int x = m_curPoint.x - m_toolbarWidth;
+		int y = m_curPoint.y + 10;
+		m_toolBar.SetWindowPos(NULL, x, y, m_toolbarWidth, m_toolbarHeight, 0);
+	}
+	Invalidate();
+}
+
 
 
 void CMaskDlg::OnLButtonDown(UINT nFlags, CPoint point)
@@ -222,7 +280,7 @@ void CMaskDlg::OnMouseMove(UINT nFlags, CPoint point)
 				m_firstPoint = leftPoint;
 				m_curPoint = rightPoint;
 				m_moveBeginPoint = point;
-				Invalidate();
+				boxChanged();
 			}
 		}
 		else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_TOP_LEFT)
@@ -237,7 +295,7 @@ void CMaskDlg::OnMouseMove(UINT nFlags, CPoint point)
 				}
 				m_firstPoint = point;
 				m_curPoint = rightPoint;
-				Invalidate();
+				boxChanged();
 			}
 		}
 		else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_BOTTOM_RIGHT)
@@ -252,7 +310,7 @@ void CMaskDlg::OnMouseMove(UINT nFlags, CPoint point)
 				}
 				m_firstPoint = leftPoint;
 				m_curPoint = point;
-				Invalidate();
+				boxChanged();
 			}
 		}
 		else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_TOP_RIGHT)
@@ -269,7 +327,7 @@ void CMaskDlg::OnMouseMove(UINT nFlags, CPoint point)
 				rightPoint.x = point.x;
 				m_firstPoint = leftPoint;
 				m_curPoint = rightPoint;
-				Invalidate();
+				boxChanged();
 			}
 		}
 		else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_BOTTOM_LEFT)
@@ -286,7 +344,7 @@ void CMaskDlg::OnMouseMove(UINT nFlags, CPoint point)
 				rightPoint.y = point.y;
 				m_firstPoint = leftPoint;
 				m_curPoint = rightPoint;
-				Invalidate();
+				boxChanged();
 			}
 		}
 		else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_RIGHT)
@@ -302,7 +360,7 @@ void CMaskDlg::OnMouseMove(UINT nFlags, CPoint point)
 				rightPoint.x = point.x;
 				m_firstPoint = leftPoint;
 				m_curPoint = rightPoint;
-				Invalidate();
+				boxChanged();
 			}
 		}
 		else if((m_resizeDirect == ADJUST_RESIZE_DIRECT_LEFT)
@@ -318,7 +376,7 @@ void CMaskDlg::OnMouseMove(UINT nFlags, CPoint point)
 				leftPoint.x = point.x;
 				m_firstPoint = leftPoint;
 				m_curPoint = rightPoint;
-				Invalidate();
+				boxChanged();
 			}
 		}
 		else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_TOP)
@@ -334,7 +392,7 @@ void CMaskDlg::OnMouseMove(UINT nFlags, CPoint point)
 				leftPoint.y = point.y;
 				m_firstPoint = leftPoint;
 				m_curPoint = rightPoint;
-				Invalidate();
+				boxChanged();
 			}
 		}
 		else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_BOTTOM)
@@ -350,7 +408,7 @@ void CMaskDlg::OnMouseMove(UINT nFlags, CPoint point)
 				rightPoint.y = point.y;
 				m_firstPoint = leftPoint;
 				m_curPoint = rightPoint;
-				Invalidate();
+				boxChanged();
 			}
 		}
 	}
