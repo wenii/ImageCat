@@ -13,6 +13,8 @@
 #define new DEBUG_NEW
 #endif
 
+#define HOTKEY_ID_CUT 999
+#define HOTKEY_ID_ESC 888
 
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
 
@@ -56,6 +58,10 @@ END_MESSAGE_MAP()
 CImageCatDlg::CImageCatDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_IMAGECAT_DIALOG, pParent)
 	, m_curentImageIndex(0)
+	, m_toolbarWidth(0)
+	, m_toolbarHeight(0)
+	, m_screenWidth(0)
+	, m_screenHeight(0)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -71,6 +77,7 @@ BEGIN_MESSAGE_MAP(CImageCatDlg, CDialogEx)
 	ON_COMMAND(ID_TOOL_BAR_BTN_ROTATE_CCW, onToolbarBtnRotateCCW)
 	ON_COMMAND(ID_TOOL_BAR_BTN_ROTATE_CW, onToolbarBtnRotateCW)
 	ON_COMMAND(ID_TOOL_BAR_BTN_CUT, onToolbarBtnRotateCut)
+	ON_MESSAGE(WM_HOTKEY, OnHotKey)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
@@ -120,6 +127,12 @@ BOOL CImageCatDlg::OnInitDialog()
 
 	// TODO: 在此添加额外的初始化代码
 
+	::RegisterHotKey(m_hWnd, HOTKEY_ID_CUT, MOD_WIN | MOD_ALT | MOD_CONTROL, NULL);//注册全局快捷键 CTRL + WIN + ALT
+	::RegisterHotKey(m_hWnd, HOTKEY_ID_ESC, MOD_ALT, VK_F1);//注册全局快捷键 CTRL + WIN + ALT
+	// 获取屏幕尺寸
+	m_screenWidth = GetSystemMetrics(SM_CXSCREEN); //获取屏幕水平分辨率
+	m_screenHeight = GetSystemMetrics(SM_CYSCREEN); //获取屏幕垂直分辨率
+
 	// 初始化工具栏
 	initToolbar();
 
@@ -127,10 +140,15 @@ BOOL CImageCatDlg::OnInitDialog()
 	m_canvas.Create(IDD_DIALOG_CANVAS, NULL);
 	m_canvas.ShowWindow(SW_SHOW);
 
+	// 初始化屏幕截图
+	m_screen.Create(IDD_DIALOG_SCREEN, NULL);
+	m_screen.ShowWindow(SW_HIDE);
+
 	// 初始化蒙板
-	m_mask.Create(IDD_DIALOG_MASK, this);
+	m_mask.Create(IDD_DIALOG_MASK, NULL);
 	m_mask.ShowWindow(SW_HIDE);
-	m_mask.setCDC(m_canvas.getMemDC());
+	m_mask.setCDC(m_screen.getScreenMemDC());
+
 
 	CString arg = getCommandLineArg();
 	if (arg == _T(""))
@@ -285,15 +303,33 @@ void CImageCatDlg::onToolbarBtnRotateCW()
 void CImageCatDlg::onToolbarBtnRotateCut()
 {
 	std::cout << "CImageCatDlg::onToolbarBtnRotateCW" << std::endl;
-	CRect		rect;
-	GetClientRect(&rect);
-	CRect screenRect = rect;
-	ClientToScreen(&screenRect);
-	m_mask.SetWindowPos(&m_canvas, screenRect.TopLeft().x, screenRect.TopLeft().y, screenRect.Width(), screenRect.Height() - m_toolbarHeight, 0);
+	cutImage();
+}
+
+void CImageCatDlg::cutImage()
+{
+	m_screen.snapshot();
+	m_screen.SetWindowPos(NULL, 0, 0, m_screenWidth, m_screenHeight, 0);
+	m_screen.ShowWindow(SW_SHOW);
+
+	m_mask.SetWindowPos(NULL, 0, 0, m_screenWidth, m_screenHeight, 0);
 	m_mask.ShowWindow(SW_SHOW);
+}
 
-	// 保存当前客户去图像
-
+HRESULT CImageCatDlg::OnHotKey(WPARAM wParam, LPARAM lParam)
+{
+	if (wParam == HOTKEY_ID_CUT)
+	{
+		std::cout << "key----------HOTKEY_ID_CUT" << std::endl;
+		cutImage();
+	}
+	else if (wParam == HOTKEY_ID_ESC)
+	{
+		std::cout << "key..........HOTKEY_ID_ESC...." << std::endl;
+		m_screen.ShowWindow(SW_HIDE);
+		m_mask.ShowWindow(SW_HIDE);
+	}
+	return TRUE;
 }
 
 
@@ -570,7 +606,14 @@ BOOL CImageCatDlg::PreTranslateMessage(MSG* pMsg)
 		{
 			prevImage();
 		}
+		else if (pMsg->wParam == VK_ESCAPE)
+		{
+			std::cout << "onKeyDown ----- vk_escape" << std::endl;
+			return true;
+		}
 	}
+
+
 	return CDialogEx::PreTranslateMessage(pMsg);
 }
 
@@ -588,10 +631,10 @@ void CImageCatDlg::OnMove(int x, int y)
 	CDialogEx::OnMove(x, y);
 	if (m_mask.GetSafeHwnd() != NULL)
 	{
-		CRect		rect;
+		/*CRect		rect;
 		GetClientRect(&rect);
 		CRect screenRect = rect;
 		ClientToScreen(&screenRect);
-		m_mask.SetWindowPos(NULL, screenRect.TopLeft().x, screenRect.TopLeft().y, screenRect.Width(), screenRect.Height() - m_toolbarHeight, 0);
+		m_mask.SetWindowPos(NULL, screenRect.TopLeft().x, screenRect.TopLeft().y, screenRect.Width(), screenRect.Height() - m_toolbarHeight, 0);*/
 	}
 }

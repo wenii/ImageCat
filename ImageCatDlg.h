@@ -6,6 +6,7 @@
 #include <vector>
 #include "CCanvasDlg.h"
 #include "CMaskDlg.h"
+#include "CScreenCutDlg.h"
 
 // CImageCatDlg 对话框
 class CImageCatDlg : public CDialogEx
@@ -23,6 +24,8 @@ public:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV 支持
 
 private:
+	CDC m_screenMemDC;
+	CBitmap m_screenDCbitmap;
 	CString m_imagePath;
 	std::vector<CString> m_ImageNameArray;
 	int m_curentImageIndex;
@@ -32,6 +35,9 @@ private:
 	int m_toolbarHeight;
 	CCanvasDlg m_canvas;
 	CMaskDlg m_mask;
+	CScreenCutDlg m_screen;
+	int m_screenWidth;
+	int m_screenHeight;
 	 
 // 实现
 protected:
@@ -47,6 +53,7 @@ protected:
 	afx_msg void onToolbarBtnRotateCCW();
 	afx_msg void onToolbarBtnRotateCW();
 	afx_msg void onToolbarBtnRotateCut();
+	afx_msg long OnHotKey(WPARAM wParam, LPARAM lParam);
 	DECLARE_MESSAGE_MAP()
 
 private:
@@ -57,6 +64,7 @@ private:
 	void setCurrentImageIndex();
 	void nextImage();
 	void prevImage();
+	void cutImage();
 public:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);

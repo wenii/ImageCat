@@ -19,8 +19,9 @@
 #define IDB_BITMAP2                     144
 #define IDB_BITMAP_CUT                  144
 #define IDD_DIALOG_CANVAS               145
-#define IDD_DIALOG1                     147
 #define IDD_DIALOG_MASK                 147
+#define IDD_DIALOG1                     149
+#define IDD_DIALOG_SCREEN               149
 #define ID_TOOL_BAR_BTN_SAVE            8001
 #define ID_TOOL_BAR_BTN_DELETE          8002
 #define ID_TOOL_BAR_BTN_PIN             8003
@@ -35,7 +36,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        149
+#define _APS_NEXT_RESOURCE_VALUE        151
 #define _APS_NEXT_COMMAND_VALUE         32774
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           101

@@ -14,6 +14,10 @@ IMPLEMENT_DYNAMIC(CMaskDlg, CDialogEx)
 CMaskDlg::CMaskDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_DIALOG_MASK, pParent)
 	, m_memCDC(NULL)
+	, m_finishCut(false)
+	, m_state(STATE_BEGIN)
+	, m_startResize(false)
+	, m_resizeDirect(ADJUST_NONE)
 {
 
 }
@@ -33,6 +37,9 @@ BEGIN_MESSAGE_MAP(CMaskDlg, CDialogEx)
 	ON_WM_LBUTTONDOWN()
 	ON_WM_MOUSEMOVE()
 	ON_WM_ERASEBKGND()
+	ON_WM_SIZE()
+	ON_WM_SHOWWINDOW()
+	ON_WM_LBUTTONUP()
 END_MESSAGE_MAP()
 
 
@@ -49,11 +56,6 @@ BOOL CMaskDlg::OnInitDialog()
 	CDialogEx::OnInitDialog();
 
 	// TODO:  在此添加额外的初始化
-	//SetWindowLong(GetSafeHwnd(), GWL_EXSTYLE, GetWindowLong(GetSafeHwnd(), GWL_EXSTYLE) | WS_EX_LAYERED);
-	//SetLayeredWindowAttributes(0, 50, LWA_ALPHA);
-	//SetWindowPos(&wndTop, m_rc.left, m_rc.top, m_rc.right, m_rc.bottom, SWP_SHOWWINDOW);
-	//修改鼠标贯标形状
-	//SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_CROSS));
 
 	::SetWindowLong(m_hWnd, GWL_EXSTYLE, GetWindowLong(m_hWnd, GWL_EXSTYLE) | WS_EX_LAYERED);
 	::SetLayeredWindowAttributes(m_hWnd, 0, 200, LWA_ALPHA); // 120是透明度，范围是0～255
@@ -88,7 +90,6 @@ void CMaskDlg::OnPaint()
 		int width = selectedRect.Width();
 		int height = selectedRect.Height();
 		CPoint clientPoint(m_firstPoint);
-		::ScreenToClient(this->GetParent()->GetSafeHwnd(), &clientPoint);
 		memDC.BitBlt(clientPoint.x, clientPoint.y, width, height, m_memCDC, clientPoint.x, clientPoint.y, SRCCOPY);
 
 		// 画线
@@ -99,7 +100,6 @@ void CMaskDlg::OnPaint()
 			CBrush* pBrush = CBrush::FromHandle((HBRUSH)GetStockObject(NULL_BRUSH));
 			CBrush* pOlBrush = memDC.SelectObject(pBrush);
 			CPoint clientCurPoint(m_curPoint);
-			::ScreenToClient(this->GetParent()->GetSafeHwnd(), &m_curPoint);
 			memDC.Rectangle(clientPoint.x, clientPoint.y, m_curPoint.x, m_curPoint.y);
 			memDC.SelectObject(pOldPen);
 			memDC.SelectObject(pOlBrush);
@@ -113,17 +113,11 @@ void CMaskDlg::OnPaint()
 			CBrush* pBrush = CBrush::FromHandle((HBRUSH)GetStockObject(NULL_BRUSH));
 			CBrush* pOlBrush = memDC.SelectObject(pBrush);
 			CPoint clientCurPoint(m_curPoint);
-			::ScreenToClient(this->GetParent()->GetSafeHwnd(), &m_curPoint);
-			//memDC.
-			int r1 = 10;
-			//memDC.Ellipse(clientPoint.x - r1, clientPoint.y - r1, clientPoint.x   + r1, clientPoint.y + r1);//使用Ellipse画第1个半径r的圆
-			//memDC.Rectangle(clientPoint.x, clientPoint.y, m_curPoint.x, m_curPoint.y);
 			{
 				Gdiplus::Graphics graphics(memDC.m_hDC);
 				Gdiplus::Pen white(Gdiplus::Color(255, 255, 255, 255), 2);
 				Gdiplus::Pen blue(Gdiplus::Color(255, 32, 128, 240), 4);
 				graphics.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
-				
 
 				CPoint circlePoseArray[8] = {
 					clientPoint,
@@ -140,6 +134,7 @@ void CMaskDlg::OnPaint()
 					CPoint p = circlePoseArray[i];
 					graphics.DrawEllipse(&white, p.x - 5, p.y - 5, 10, 10);
 					graphics.DrawEllipse(&blue, p.x - 2, p.y - 2, 4, 4);
+					
 				}
 
 			}
@@ -149,7 +144,6 @@ void CMaskDlg::OnPaint()
 		}
 
 		dc.BitBlt(0, 0, rectWidth, rectHeight, &memDC, 0, 0, SRCCOPY);
-		
 	}
 }
 
@@ -157,7 +151,15 @@ void CMaskDlg::OnPaint()
 void CMaskDlg::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
-	m_firstPoint = point;
+	std::cout << "onLButtonDown:point.x:" << point.x << "point.y:" << point.y << std::endl;
+	if (m_state == STATE_BEGIN)
+	{
+		std::cout << "STATE_BEGIN -> STATE_BOX_SELECT" << std::endl;
+		m_state = STATE_BOX_SELECT;
+		m_firstPoint = point;
+	}
+	m_moveBeginPoint = point;
+	
 	CDialogEx::OnLButtonDown(nFlags, point);
 }
 
@@ -165,10 +167,192 @@ void CMaskDlg::OnLButtonDown(UINT nFlags, CPoint point)
 void CMaskDlg::OnMouseMove(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
-	if (nFlags & MK_LBUTTON)
+	if (m_state == STATE_BOX_SELECT)
 	{
-		m_curPoint = point;
-		Invalidate();
+		if (nFlags & MK_LBUTTON)
+		{
+			m_curPoint = point;
+			Invalidate();
+		}
+	}
+	
+	std::cout << "CMaskDlg::OnMouseMove state:" << m_state << std::endl;
+
+	if (m_state == STATE_BOX_ADJUST)
+	{
+		CPoint leftPoint = m_firstPoint;
+		CPoint rightPoint = m_curPoint;
+		if (m_firstPoint.x < m_curPoint.x && m_firstPoint.y < m_curPoint.y)
+		{
+			leftPoint = m_firstPoint;
+			rightPoint = m_curPoint;
+		}
+		else if (m_firstPoint.x < m_curPoint.x && m_firstPoint.y > m_curPoint.y)
+		{
+			leftPoint = CPoint(m_firstPoint.x, m_curPoint.y);
+			rightPoint = CPoint(m_curPoint.x, m_firstPoint.y);
+		}
+		else if (m_firstPoint.x > m_curPoint.x && m_firstPoint.y < m_curPoint.y)
+		{
+			leftPoint = CPoint(m_curPoint.x, m_firstPoint.y);
+			rightPoint = CPoint(m_firstPoint.x, m_curPoint.y);
+		}
+		else if (m_firstPoint.x > m_curPoint.x&& m_firstPoint.y > m_curPoint.y)
+		{
+			leftPoint = m_curPoint;
+			rightPoint = m_firstPoint;
+		}
+		std::cout << "left.x:" << leftPoint.x << " left.y:" << leftPoint.y << "right.x:" << rightPoint.x << "right.y:" << rightPoint.y << std::endl;
+
+		// 根据当前鼠标位置确定鼠标形状
+		if ((m_resizeDirect == ADJUST_MOVE)
+			|| (m_resizeDirect == ADJUST_NONE && point.x > leftPoint.x && point.x < rightPoint.x && point.y > leftPoint.y && point.y < rightPoint.y))
+		{
+			// 十字拖动图标
+			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZEALL));
+			if (nFlags & MK_LBUTTON)
+			{
+				if (m_resizeDirect == ADJUST_NONE)
+				{
+					m_resizeDirect = ADJUST_MOVE;
+				}
+				CPoint offset = point - m_moveBeginPoint;
+				leftPoint += offset;
+				rightPoint += offset;
+				m_firstPoint = leftPoint;
+				m_curPoint = rightPoint;
+				m_moveBeginPoint = point;
+				Invalidate();
+			}
+		}
+		else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_TOP_LEFT)
+			|| (m_resizeDirect == ADJUST_NONE && (point.x < leftPoint.x && point.y < leftPoint.y))/*左上角*/)
+		{
+			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZENWSE));
+			if (nFlags & MK_LBUTTON)
+			{
+				if (m_resizeDirect == ADJUST_NONE)
+				{
+					m_resizeDirect = ADJUST_RESIZE_DIRECT_TOP_LEFT;
+				}
+				m_firstPoint = point;
+				m_curPoint = rightPoint;
+				Invalidate();
+			}
+		}
+		else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_BOTTOM_RIGHT)
+			|| (m_resizeDirect == ADJUST_NONE && point.x > rightPoint.x && point.y > rightPoint.y)/*右下角*/)
+		{
+			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZENWSE));
+			if (nFlags & MK_LBUTTON)
+			{
+				if (m_resizeDirect == ADJUST_NONE)
+				{
+					m_resizeDirect = ADJUST_RESIZE_DIRECT_BOTTOM_RIGHT;
+				}
+				m_firstPoint = leftPoint;
+				m_curPoint = point;
+				Invalidate();
+			}
+		}
+		else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_TOP_RIGHT)
+			|| (m_resizeDirect == ADJUST_NONE && point.x > rightPoint.x && point.y < leftPoint.y)/*右上角*/)
+		{
+			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZENESW));
+			if (nFlags & MK_LBUTTON)
+			{
+				if (m_resizeDirect == ADJUST_NONE)
+				{
+					m_resizeDirect = ADJUST_RESIZE_DIRECT_TOP_RIGHT;
+				}
+				leftPoint.y = point.y;
+				rightPoint.x = point.x;
+				m_firstPoint = leftPoint;
+				m_curPoint = rightPoint;
+				Invalidate();
+			}
+		}
+		else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_BOTTOM_LEFT)
+			|| (m_resizeDirect == ADJUST_NONE && point.x < leftPoint.x && point.y > rightPoint.y)/*左下角*/)
+		{
+			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZENESW));
+			if (nFlags & MK_LBUTTON)
+			{
+				if (m_resizeDirect == ADJUST_NONE)
+				{
+					m_resizeDirect = ADJUST_RESIZE_DIRECT_BOTTOM_LEFT;
+				}
+				leftPoint.x = point.x;
+				rightPoint.y = point.y;
+				m_firstPoint = leftPoint;
+				m_curPoint = rightPoint;
+				Invalidate();
+			}
+		}
+		else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_RIGHT)
+			|| (m_resizeDirect == ADJUST_NONE && point.x > rightPoint.x) && (point.y > leftPoint.y&& point.y < rightPoint.y)/*右边*/)
+		{
+			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZEWE));
+			if (nFlags & MK_LBUTTON)
+			{
+				if (m_resizeDirect == ADJUST_NONE)
+				{
+					m_resizeDirect = ADJUST_RESIZE_DIRECT_RIGHT;
+				}
+				rightPoint.x = point.x;
+				m_firstPoint = leftPoint;
+				m_curPoint = rightPoint;
+				Invalidate();
+			}
+		}
+		else if((m_resizeDirect == ADJUST_RESIZE_DIRECT_LEFT)
+			|| (m_resizeDirect == ADJUST_NONE && point.x < leftPoint.x) && (point.y > leftPoint.y && point.y < rightPoint.y)/*左边*/)
+		{
+			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZEWE));
+			if (nFlags & MK_LBUTTON)
+			{
+				if (m_resizeDirect == ADJUST_NONE)
+				{
+					m_resizeDirect = ADJUST_RESIZE_DIRECT_LEFT;
+				}
+				leftPoint.x = point.x;
+				m_firstPoint = leftPoint;
+				m_curPoint = rightPoint;
+				Invalidate();
+			}
+		}
+		else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_TOP)
+			|| (m_resizeDirect == ADJUST_NONE && point.y < leftPoint.y && point.x > leftPoint.x && point.x < rightPoint.x)/*上边*/)
+		{
+			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZENS));
+			if (nFlags & MK_LBUTTON)
+			{
+				if (m_resizeDirect == ADJUST_NONE)
+				{
+					m_resizeDirect = ADJUST_RESIZE_DIRECT_TOP;
+				}
+				leftPoint.y = point.y;
+				m_firstPoint = leftPoint;
+				m_curPoint = rightPoint;
+				Invalidate();
+			}
+		}
+		else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_BOTTOM)
+			|| (m_resizeDirect == ADJUST_NONE && point.y > rightPoint.y && point.x > leftPoint.x && point.x < rightPoint.x)/*下边*/)
+		{
+			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZENS));
+			if (nFlags & MK_LBUTTON)
+			{
+				if (m_resizeDirect == ADJUST_NONE)
+				{
+					m_resizeDirect = ADJUST_RESIZE_DIRECT_BOTTOM;
+				}
+				rightPoint.y = point.y;
+				m_firstPoint = leftPoint;
+				m_curPoint = rightPoint;
+				Invalidate();
+			}
+		}
 	}
 	
 	CDialogEx::OnMouseMove(nFlags, point);
@@ -181,4 +365,64 @@ BOOL CMaskDlg::OnEraseBkgnd(CDC* pDC)
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	return true;
 	//return CDialogEx::OnEraseBkgnd(pDC);
+}
+
+
+void CMaskDlg::OnSize(UINT nType, int cx, int cy)
+{
+	CDialogEx::OnSize(nType, cx, cy);
+
+	Invalidate();
+	// TODO: 在此处添加消息处理程序代码
+}
+
+
+BOOL CMaskDlg::PreTranslateMessage(MSG* pMsg)
+{
+	// TODO: 在此添加专用代码和/或调用基类
+	if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_ESCAPE)
+	{
+		return TRUE;
+	}
+	return CDialogEx::PreTranslateMessage(pMsg);
+}
+
+
+void CMaskDlg::OnShowWindow(BOOL bShow, UINT nStatus)
+{
+	CDialogEx::OnShowWindow(bShow, nStatus);
+
+	// TODO: 在此处添加消息处理程序代码
+	m_firstPoint = CPoint(0, 0);
+	m_curPoint = CPoint(0, 0);
+	m_state = STATE_BEGIN;
+	m_resizeDirect = ADJUST_NONE;
+	SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_CROSS));
+}
+
+
+void CMaskDlg::OnLButtonUp(UINT nFlags, CPoint point)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	if (m_state == STATE_BOX_SELECT)
+	{
+		if (m_curPoint != m_firstPoint)
+		{
+			std::cout << "STATE_BOX_SELECT -> STATE_BOX_ADJUST" << std::endl;
+			m_state = STATE_BOX_ADJUST;
+		}
+		else
+		{
+			std::cout << "STATE_BOX_SELECT -> STATE_BEGIN" << std::endl;
+			m_state = STATE_BEGIN;
+		}
+	}
+	else if (m_state == STATE_BOX_ADJUST)
+	{
+		if (m_resizeDirect != ADJUST_NONE)
+		{
+			m_resizeDirect = ADJUST_NONE;
+		}
+	}
+	CDialogEx::OnLButtonUp(nFlags, point);
 }
