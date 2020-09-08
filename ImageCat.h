@@ -33,5 +33,15 @@ private:
 
 	DECLARE_MESSAGE_MAP()
 };
+class CPinDlg;
+class CPinApp : public CWinApp
+{
+public:
+	CPinApp(CPinDlg* dlg);
+public:
+	CPinDlg* m_pinDlg;
+public:
+	virtual BOOL InitInstance();
+};
 
 extern CImageCatApp theApp;

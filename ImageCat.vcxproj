@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -188,7 +188,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CCanvasDlg.h" />
+    <ClInclude Include="CCutToolbarDlg.h" />
     <ClInclude Include="CMaskDlg.h" />
+    <ClInclude Include="CPinDlg.h" />
     <ClInclude Include="CScreenCutDlg.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ImageCat.h" />
@@ -199,7 +201,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CCanvasDlg.cpp" />
+    <ClCompile Include="CCutToolbarDlg.cpp" />
     <ClCompile Include="CMaskDlg.cpp" />
+    <ClCompile Include="CPinDlg.cpp" />
     <ClCompile Include="CScreenCutDlg.cpp" />
     <ClCompile Include="ImageCat.cpp" />
     <ClCompile Include="ImageCatDlg.cpp" />
@@ -222,14 +226,18 @@
     <Image Include="..\..\..\..\..\bmp\bmp\32x32\Pin.bmp" />
     <Image Include="..\..\..\..\..\bmp\bmp\32x32\Save image.bmp" />
     <Image Include="res\bitmap2.bmp" />
+    <Image Include="res\bitmap4.bmp" />
     <Image Include="res\Cut.bmp" />
     <Image Include="res\Delete.bmp" />
+    <Image Include="res\Erase.bmp" />
     <Image Include="res\ImageCat.ico" />
+    <Image Include="res\ImageDraw\FinishNormal%402x.png" />
     <Image Include="res\Pin.bmp" />
     <Image Include="res\Rotate CCW.bmp" />
     <Image Include="res\Rotate CW.bmp" />
     <Image Include="res\Save image.bmp" />
     <Image Include="res\toolbar1.bmp" />
+    <Image Include="res\Yes.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

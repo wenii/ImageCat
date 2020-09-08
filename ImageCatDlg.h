@@ -52,8 +52,9 @@ protected:
 	afx_msg void onToolbarBtnDelete();
 	afx_msg void onToolbarBtnRotateCCW();
 	afx_msg void onToolbarBtnRotateCW();
-	afx_msg void onToolbarBtnRotateCut();
+	afx_msg void onToolbarBtnCut();
 	afx_msg long OnHotKey(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnCutQuit(WPARAM wParam, LPARAM lParam);
 	DECLARE_MESSAGE_MAP()
 
 private:
@@ -65,6 +66,7 @@ private:
 	void nextImage();
 	void prevImage();
 	void cutImage();
+	void quitCutImage();
 public:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);

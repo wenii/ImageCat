@@ -47,7 +47,6 @@ void CScreenCutDlg::snapshot()
 	m_screenMemDC.SelectObject(m_screenDCbitmap);
 
 	m_screenMemDC.BitBlt(0, 0, m_screenWidth, m_screenHeight, &screenDC, 0, 0, SRCCOPY);
-
 }
 
 CDC* CScreenCutDlg::getScreenMemDC()

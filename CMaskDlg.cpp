@@ -14,8 +14,6 @@ IMPLEMENT_DYNAMIC(CMaskDlg, CDialogEx)
 CMaskDlg::CMaskDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_DIALOG_MASK, pParent)
 	, m_memCDC(NULL)
-	, m_toolbarWidth(0)
-	, m_toolbarHeight(0)
 	, m_finishCut(false)
 	, m_state(STATE_BEGIN)
 	, m_startResize(false)
@@ -35,6 +33,9 @@ void CMaskDlg::DoDataExchange(CDataExchange* pDX)
 
 
 BEGIN_MESSAGE_MAP(CMaskDlg, CDialogEx)
+	ON_MESSAGE(WM_USER_MESSAGE_SAVE_TO_MEM, OnSaveToMem)
+	ON_MESSAGE(WM_USER_MESSAGE_SAVE_TO_FILE, OnSaveToFile)
+	ON_MESSAGE(WM_USER_MESSAGE_PIN, OnPin)
 	ON_WM_PAINT()
 	ON_WM_LBUTTONDOWN()
 	ON_WM_MOUSEMOVE()
@@ -62,7 +63,8 @@ BOOL CMaskDlg::OnInitDialog()
 	::SetWindowLong(m_hWnd, GWL_EXSTYLE, GetWindowLong(m_hWnd, GWL_EXSTYLE) | WS_EX_LAYERED);
 	::SetLayeredWindowAttributes(m_hWnd, 0, 200, LWA_ALPHA); // 120是透明度，范围是0～255
 
-	initToolbar();
+	m_toolbarDlg.Create(IDD_DIALOG_CUT_TOOL_BAR, this);
+	m_toolbarDlg.ShowWindow(SW_HIDE);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 异常: OCX 属性页应返回 FALSE
@@ -150,59 +152,73 @@ void CMaskDlg::OnPaint()
 	}
 }
 
-void CMaskDlg::initToolbar()
-{
-	if (m_toolBar.CreateEx(this, TBSTYLE_FLAT, WS_CHILD | WS_VISIBLE | CBRS_ALIGN_ANY | CBRS_TOOLTIPS))
-	{
-
-		static UINT BASED_CODE DockTool[] = { ID_TOOL_BAR_BTN_SAVE, ID_TOOL_BAR_BTN_DELETE, ID_TOOL_BAR_BTN_ROTATE_CCW , ID_TOOL_BAR_BTN_ROTATE_CW, ID_TOOL_BAR_BTN_CUT };
-		CBitmap bitmap;
-		bitmap.LoadBitmapW(IDB_BITMAP_SAVE);
-		m_toolbarlist.Create(32, 32, ILC_COLOR24, 0, 0);
-		m_toolbarlist.Add(&bitmap, (CBitmap*)NULL);
-		/*CBitmap bitmapPin;
-		bitmapPin.LoadBitmapW(IDB_BITMAP_PIN);
-		m_toolbarlist.Add(&bitmapPin, (CBitmap*)NULL);*/
-		CBitmap bitmapDelete;
-		bitmapDelete.LoadBitmapW(IDB_BITMAP_DELETE);
-		m_toolbarlist.Add(&bitmapDelete, (CBitmap*)NULL);
-		CBitmap bitmapRotateCCW;
-		bitmapRotateCCW.LoadBitmapW(IDB_BITMAP_ROTATE_CCW);
-		m_toolbarlist.Add(&bitmapRotateCCW, (CBitmap*)NULL);
-		CBitmap bitmapRotateCW;
-		bitmapRotateCW.LoadBitmapW(IDB_BITMAP_ROTATE_CW);
-		m_toolbarlist.Add(&bitmapRotateCW, (CBitmap*)NULL);
-		CBitmap bitmapCut;
-		bitmapCut.LoadBitmapW(IDB_BITMAP_CUT);
-		m_toolbarlist.Add(&bitmapCut, (CBitmap*)NULL);
-
-		//设置工具栏按钮图片
-		m_toolBar.GetToolBarCtrl().SetImageList(&m_toolbarlist);
-		//设置工具栏按钮大小， 和按钮中位图大小
-		SIZE sbutton, sImage;
-		sbutton.cx = 48;
-		sbutton.cy = 48;
-		sImage.cx = 32;
-		sImage.cy = 32;
-		m_toolBar.SetSizes(sbutton, sImage);
-		m_toolBar.SetButtons(DockTool, (UINT)5);
-
-		m_toolbarWidth = 5 * 48;
-		m_toolbarHeight = 48;
-	}
-}
 
 void CMaskDlg::boxChanged()
 {
 	if (m_state == STATE_BOX_ADJUST)
 	{
 		// 修改toolbar 位置
-		int x = m_curPoint.x - m_toolbarWidth;
+		int toolbarWidth = m_toolbarDlg.getToolbarWidth();
+		int toolbarHeight = m_toolbarDlg.getToolbarHeight();
+		int x = m_curPoint.x - toolbarWidth;
 		int y = m_curPoint.y + 10;
-		m_toolBar.SetWindowPos(NULL, x, y, m_toolbarWidth, m_toolbarHeight, 0);
+		m_toolbarDlg.SetWindowPos(NULL, x, y, toolbarWidth, toolbarHeight, 0);
+		m_toolbarDlg.ShowWindow(SW_SHOW);
 	}
 	Invalidate();
 }
+
+void CMaskDlg::reset()
+{
+	m_firstPoint = CPoint(0, 0);
+	m_curPoint = CPoint(0, 0);
+	m_state = STATE_BEGIN;
+	m_resizeDirect = ADJUST_NONE;
+	Invalidate();
+}
+
+CRect CMaskDlg::getBoxRect()
+{
+	CPoint leftPoint = m_firstPoint;
+	CPoint rightPoint = m_curPoint;
+	if (m_firstPoint.x < m_curPoint.x && m_firstPoint.y < m_curPoint.y)
+	{
+		leftPoint = m_firstPoint;
+		rightPoint = m_curPoint;
+	}
+	else if (m_firstPoint.x < m_curPoint.x && m_firstPoint.y > m_curPoint.y)
+	{
+		leftPoint = CPoint(m_firstPoint.x, m_curPoint.y);
+		rightPoint = CPoint(m_curPoint.x, m_firstPoint.y);
+	}
+	else if (m_firstPoint.x > m_curPoint.x&& m_firstPoint.y < m_curPoint.y)
+	{
+		leftPoint = CPoint(m_curPoint.x, m_firstPoint.y);
+		rightPoint = CPoint(m_firstPoint.x, m_curPoint.y);
+	}
+	else if (m_firstPoint.x > m_curPoint.x&& m_firstPoint.y > m_curPoint.y)
+	{
+		leftPoint = m_curPoint;
+		rightPoint = m_firstPoint;
+	}
+	return CRect(leftPoint, rightPoint);
+}
+
+void CMaskDlg::fillBoxImage(CDC* cdc)
+{
+	CRect boxRect = getBoxRect();
+	int width = boxRect.Width();
+	int height = boxRect.Height();
+
+	cdc->CreateCompatibleDC(m_memCDC);
+	CBitmap bitmap;
+	bitmap.CreateCompatibleBitmap(m_memCDC, width, height);
+	cdc->SelectObject(&bitmap);
+	cdc->BitBlt(0, 0, width, height, m_memCDC, boxRect.left , boxRect.top, SRCCOPY);
+	bitmap.Detach();
+}
+
+
 
 
 
@@ -451,11 +467,13 @@ void CMaskDlg::OnShowWindow(BOOL bShow, UINT nStatus)
 	CDialogEx::OnShowWindow(bShow, nStatus);
 
 	// TODO: 在此处添加消息处理程序代码
-	m_firstPoint = CPoint(0, 0);
-	m_curPoint = CPoint(0, 0);
-	m_state = STATE_BEGIN;
-	m_resizeDirect = ADJUST_NONE;
+	
 	SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_CROSS));
+	if (!bShow)
+	{
+		m_toolbarDlg.ShowWindow(SW_HIDE);
+		SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_ARROW));
+	}
 }
 
 
@@ -468,6 +486,7 @@ void CMaskDlg::OnLButtonUp(UINT nFlags, CPoint point)
 		{
 			std::cout << "STATE_BOX_SELECT -> STATE_BOX_ADJUST" << std::endl;
 			m_state = STATE_BOX_ADJUST;
+			boxChanged();
 		}
 		else
 		{
@@ -484,3 +503,75 @@ void CMaskDlg::OnLButtonUp(UINT nFlags, CPoint point)
 	}
 	CDialogEx::OnLButtonUp(nFlags, point);
 }
+
+LRESULT CMaskDlg::OnSaveToMem(WPARAM wParam, LPARAM lParam)
+{
+	std::cout << "OnSaveToMem" << std::endl;
+	CDC cdc;
+	fillBoxImage(&cdc);
+	if (OpenClipboard())
+	{
+		//清空剪切板
+		EmptyClipboard();
+		//存入位图
+		SetClipboardData(CF_BITMAP, cdc.GetCurrentBitmap()->m_hObject);
+		CloseClipboard();
+	}
+	::SendMessage(this->GetParent()->GetSafeHwnd(), WM_USER_MESSAGE_CUT_QUIT, 0, 0);
+	return 0;
+}
+
+
+
+LRESULT CMaskDlg::OnSaveToFile(WPARAM wParam, LPARAM lParam)
+{
+	std::cout << "OnSaveToFile" << std::endl;
+
+	CTime tm;
+	tm = CTime::GetCurrentTime();
+	CString strTime = tm.Format("%Y%m%d%H%M%S");
+	CString strDefName = _T("screenshot") + strTime;
+	CString filter = _T(".bmp||.jpg||.jpeg||.png||");
+	CString formatArray[5] = { _T(".jpg"), _T(".bmp"), _T(".jpg"), _T(".jpeg"), _T(".png") };
+	CFileDialog dlg(FALSE, NULL, LPCTSTR(strDefName), OFN_HIDEREADONLY, filter);
+
+	if (dlg.DoModal() == IDOK)
+	{
+		CString name = dlg.GetPathName();
+		CString suffix = formatArray[dlg.m_ofn.nFilterIndex];
+
+		CDC cdc;
+		fillBoxImage(&cdc);
+		CImage img;
+		img.Attach((HBITMAP)cdc.GetCurrentBitmap()->GetSafeHandle());
+		img.Save(name + suffix);
+	}
+	::SendMessage(this->GetParent()->GetSafeHwnd(), WM_USER_MESSAGE_CUT_QUIT, 0, 0);
+	return 0;
+
+}
+
+LRESULT CMaskDlg::OnPin(WPARAM wParam, LPARAM lParam)
+{
+	std::cout << "OnPin" << std::endl;
+	CRect boxRect = getBoxRect();
+	int width = boxRect.Width();
+	int height = boxRect.Height();
+	std::cout << "----width:" << width << "height:" << height << std::endl;
+
+	int screenWidth = GetSystemMetrics(SM_CXSCREEN); //获取屏幕水平分辨率
+	int screenHeight = GetSystemMetrics(SM_CYSCREEN); //获取屏幕垂直分辨率
+	CPinDlg* pinDlg = new CPinDlg(width, height);
+	pinDlg->Create(IDD_DIALOG_PIN_BACK, GetDesktopWindow());
+	fillBoxImage(pinDlg->getCDC());
+	//::SetWindowPos(pinDlg->GetSafeHwnd(), HWND_TOPMOST, (screenWidth - width) / 2, (screenHeight - height) / 2, width, height, SWP_SHOWWINDOW);
+	::SetWindowPos(pinDlg->GetSafeHwnd(), HWND_TOPMOST, boxRect.left, boxRect.top, width, height, SWP_SHOWWINDOW);
+	pinDlg->SetActiveWindow();
+	pinDlg->Invalidate();
+	::SendMessage(this->GetParent()->GetSafeHwnd(), WM_USER_MESSAGE_CUT_QUIT, 0, 0);
+
+	return 0;
+
+}
+
+

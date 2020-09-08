@@ -76,8 +76,9 @@ BEGIN_MESSAGE_MAP(CImageCatDlg, CDialogEx)
 	ON_COMMAND(ID_TOOL_BAR_BTN_DELETE, onToolbarBtnDelete)
 	ON_COMMAND(ID_TOOL_BAR_BTN_ROTATE_CCW, onToolbarBtnRotateCCW)
 	ON_COMMAND(ID_TOOL_BAR_BTN_ROTATE_CW, onToolbarBtnRotateCW)
-	ON_COMMAND(ID_TOOL_BAR_BTN_CUT, onToolbarBtnRotateCut)
+	ON_COMMAND(ID_TOOL_BAR_BTN_CUT, onToolbarBtnCut)
 	ON_MESSAGE(WM_HOTKEY, OnHotKey)
+	ON_MESSAGE(WM_USER_MESSAGE_CUT_QUIT, OnCutQuit)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
@@ -145,7 +146,7 @@ BOOL CImageCatDlg::OnInitDialog()
 	m_screen.ShowWindow(SW_HIDE);
 
 	// 初始化蒙板
-	m_mask.Create(IDD_DIALOG_MASK, NULL);
+	m_mask.Create(IDD_DIALOG_MASK, this);
 	m_mask.ShowWindow(SW_HIDE);
 	m_mask.setCDC(m_screen.getScreenMemDC());
 
@@ -300,7 +301,7 @@ void CImageCatDlg::onToolbarBtnRotateCW()
 	std::cout << "CImageCatDlg::onToolbarBtnRotateCW" << std::endl;
 	m_canvas.rotation(90);
 }
-void CImageCatDlg::onToolbarBtnRotateCut()
+void CImageCatDlg::onToolbarBtnCut()
 {
 	std::cout << "CImageCatDlg::onToolbarBtnRotateCW" << std::endl;
 	cutImage();
@@ -312,8 +313,16 @@ void CImageCatDlg::cutImage()
 	m_screen.SetWindowPos(NULL, 0, 0, m_screenWidth, m_screenHeight, 0);
 	m_screen.ShowWindow(SW_SHOW);
 
+	m_mask.reset();
 	m_mask.SetWindowPos(NULL, 0, 0, m_screenWidth, m_screenHeight, 0);
 	m_mask.ShowWindow(SW_SHOW);
+}
+
+void CImageCatDlg::quitCutImage()
+{
+	m_mask.reset();
+	m_screen.ShowWindow(SW_HIDE);
+	m_mask.ShowWindow(SW_HIDE);
 }
 
 HRESULT CImageCatDlg::OnHotKey(WPARAM wParam, LPARAM lParam)
@@ -629,12 +638,11 @@ LRESULT CImageCatDlg::OnNcHitTest(CPoint point)
 void CImageCatDlg::OnMove(int x, int y)
 {
 	CDialogEx::OnMove(x, y);
-	if (m_mask.GetSafeHwnd() != NULL)
-	{
-		/*CRect		rect;
-		GetClientRect(&rect);
-		CRect screenRect = rect;
-		ClientToScreen(&screenRect);
-		m_mask.SetWindowPos(NULL, screenRect.TopLeft().x, screenRect.TopLeft().y, screenRect.Width(), screenRect.Height() - m_toolbarHeight, 0);*/
-	}
+}
+
+LRESULT CImageCatDlg::OnCutQuit(WPARAM wParam, LPARAM lParam)
+{
+	std::cout << "OnCancel" << std::endl;
+	quitCutImage();
+	return 0;
 }

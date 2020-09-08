@@ -42,6 +42,12 @@
     <ClInclude Include="CScreenCutDlg.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="CCutToolbarDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CPinDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ImageCat.cpp">
@@ -60,6 +66,12 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="CScreenCutDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CCutToolbarDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CPinDlg.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -111,6 +123,15 @@
       <Filter>资源文件</Filter>
     </Image>
     <Image Include="res\Cut.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\bitmap4.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\Yes.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\Erase.bmp">
       <Filter>资源文件</Filter>
     </Image>
   </ItemGroup>
