@@ -134,5 +134,38 @@
     <Image Include="res\Erase.bmp">
       <Filter>资源文件</Filter>
     </Image>
+    <Image Include="res\fenc.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\ImageDraw\FinishNormal%402x.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\icon1.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\finish.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\close.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\save.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\pin.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\cut.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\rotateRight.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\rotateLeft.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\delete.ico">
+      <Filter>资源文件</Filter>
+    </Image>
   </ItemGroup>
 </Project>

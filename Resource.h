@@ -6,6 +6,15 @@
 #define IDD_ABOUTBOX                    100
 #define IDS_ABOUTBOX                    101
 #define IDD_IMAGECAT_DIALOG             102
+#define IDS_STRING_SAVE                 102
+#define IDS_STRING_DELETE               103
+#define IDS_STRING_ROTATE_LEFT          104
+#define IDS_STRING_ROTATE_RIGHT         105
+#define IDS_STRING_CUT                  106
+#define IDS_STRING_PIN                  110
+#define IDS_STRING_CUT_SAVE             111
+#define IDS_STRING_EXIT                 112
+#define IDS_STRING_FINISH               113
 #define IDR_MAINFRAME                   128
 #define IDR_TOOLBAR1                    130
 #define IDR_MENU1                       132
@@ -30,6 +39,15 @@
 #define IDR_MENU2                       159
 #define IDR_MENU_PIN                    159
 #define IDB_PNG1                        160
+#define IDI_ICON_FENC                   161
+#define IDI_ICON_CLOSE                  164
+#define IDI_ICON_SAVE                   165
+#define IDI_ICON_PIN                    166
+#define IDI_ICON_CUT                    167
+#define IDI_ICON_ROTATE_RIGHT           168
+#define IDI_ICON_ROTATE_LEFT            169
+#define IDI_ICON1                       170
+#define IDI_ICON_DELETE                 170
 #define ID_MENU_ITEM_PIN_DESTROY        1010
 #define ID_TOOL_BAR_BTN_SAVE            8001
 #define ID_TOOL_BAR_BTN_DELETE          8002
@@ -44,13 +62,14 @@
 #define ID_BUTTON32772                  32772
 #define ID_BUTTON32773                  32773
 #define ID_32774                        32774
+#define IDI_ICON_FINISH                 32774
 #define ID_MENU_PIN_DESTROY             32775
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        161
+#define _APS_NEXT_RESOURCE_VALUE        171
 #define _APS_NEXT_COMMAND_VALUE         32776
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           101

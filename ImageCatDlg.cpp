@@ -92,6 +92,7 @@ BEGIN_MESSAGE_MAP(CImageCatDlg, CDialogEx)
 	ON_WM_LBUTTONDBLCLK()
 	ON_WM_NCHITTEST()
 	ON_WM_MOVE()
+	ON_NOTIFY_EX(TTN_NEEDTEXT, 0, OnDisplay)
 END_MESSAGE_MAP()
 
 
@@ -361,30 +362,19 @@ void CImageCatDlg::initToolbar()
 {
 	if (m_toolBar.CreateEx(this, TBSTYLE_FLAT, WS_CHILD | WS_VISIBLE | CBRS_ALIGN_ANY | CBRS_TOOLTIPS))
 	{
-
+		m_toolBar.EnableToolTips();
 		static UINT BASED_CODE DockTool[] = { ID_TOOL_BAR_BTN_SAVE, ID_TOOL_BAR_BTN_DELETE, ID_TOOL_BAR_BTN_ROTATE_CCW , ID_TOOL_BAR_BTN_ROTATE_CW, ID_TOOL_BAR_BTN_CUT };
-		CBitmap bitmap;
-		bitmap.LoadBitmapW(IDB_BITMAP_SAVE);
-		m_toolbarlist.Create(32, 32, ILC_COLOR24, 0, 0);
-		m_toolbarlist.Add(&bitmap, (CBitmap*)NULL);
-		/*CBitmap bitmapPin;
-		bitmapPin.LoadBitmapW(IDB_BITMAP_PIN);
-		m_toolbarlist.Add(&bitmapPin, (CBitmap*)NULL);*/
-		CBitmap bitmapDelete;
-		bitmapDelete.LoadBitmapW(IDB_BITMAP_DELETE);
-		m_toolbarlist.Add(&bitmapDelete, (CBitmap*)NULL);
-		CBitmap bitmapRotateCCW;
-		bitmapRotateCCW.LoadBitmapW(IDB_BITMAP_ROTATE_CCW);
-		m_toolbarlist.Add(&bitmapRotateCCW, (CBitmap*)NULL);
-		CBitmap bitmapRotateCW;
-		bitmapRotateCW.LoadBitmapW(IDB_BITMAP_ROTATE_CW);
-		m_toolbarlist.Add(&bitmapRotateCW, (CBitmap*)NULL);
-		CBitmap bitmapCut;
-		bitmapCut.LoadBitmapW(IDB_BITMAP_CUT);
-		m_toolbarlist.Add(&bitmapCut, (CBitmap*)NULL);
+
+		m_toolbarlist.Create(32, 32, ILC_COLOR32, 0, 0);
+		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_SAVE)));
+		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_DELETE)));
+		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_ROTATE_LEFT)));
+		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_ROTATE_RIGHT)));
+		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_CUT)));
 
 		//设置工具栏按钮图片
 		m_toolBar.GetToolBarCtrl().SetImageList(&m_toolbarlist);
+
 		//设置工具栏按钮大小， 和按钮中位图大小
 		SIZE sbutton, sImage;
 		sbutton.cx = 48;
@@ -645,4 +635,21 @@ LRESULT CImageCatDlg::OnCutQuit(WPARAM wParam, LPARAM lParam)
 	std::cout << "OnCancel" << std::endl;
 	quitCutImage();
 	return 0;
+}
+
+BOOL CImageCatDlg::OnDisplay(UINT id, NMHDR* pNMHDR, LRESULT* pResult)
+{
+	TOOLTIPTEXT* pTTT = (NMTTDISPINFO*)pNMHDR;
+	UINT nID = pNMHDR->idFrom;//获取工具栏按钮ID
+	if (nID)
+	{
+		nID = m_toolBar.CommandToIndex(nID); //根据ID获取按钮索引
+		if (nID != -1)
+		{
+			m_toolbarTips.LoadStringW(IDS_STRING_SAVE + nID);
+			pTTT->lpszText = (LPWSTR)(LPCTSTR)m_toolbarTips; //设置提示信息文本
+			pTTT->hinst = AfxGetResourceHandle();
+		}
+	}
+	return TRUE;
 }

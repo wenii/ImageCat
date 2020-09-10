@@ -37,6 +37,7 @@ BEGIN_MESSAGE_MAP(CCutToolbarDlg, CDialogEx)
 	ON_COMMAND(ID_TOOL_BAR_BTN_CANCEL, onToolbarBtnCancel)
 	ON_COMMAND(ID_TOOL_BAR_BTN_SAVE_FILE, onToolbarBtnSaveToFile)
 	ON_COMMAND(ID_TOOL_BAR_BTN_PIN, onToolbarBtnPin)
+	ON_NOTIFY_EX(TTN_NEEDTEXT, 0, OnDisplay)
 END_MESSAGE_MAP()
 
 
@@ -58,41 +59,28 @@ void CCutToolbarDlg::initToolbar()
 {
 	if (m_toolBar.CreateEx(this, TBSTYLE_FLAT, WS_CHILD | WS_VISIBLE | CBRS_ALIGN_ANY | CBRS_TOOLTIPS))
 	{
-
+		m_toolBar.EnableToolTips();
 		static UINT BASED_CODE DockTool[] = { ID_TOOL_BAR_BTN_PIN, ID_TOOL_BAR_BTN_SAVE_FILE, ID_TOOL_BAR_BTN_CANCEL, ID_TOOL_BAR_BTN_YES };
-		
-		m_toolbarlist.Create(32, 32, ILC_COLOR24, 0, 0);
-
-		CBitmap bitmapPin;
-		bitmapPin.LoadBitmapW(IDB_BITMAP_PIN);
-		m_toolbarlist.Add(&bitmapPin, (CBitmap*)NULL);
-
-		CBitmap bitmapSave;
-		bitmapSave.LoadBitmapW(IDB_BITMAP_SAVE);
-		m_toolbarlist.Add(&bitmapSave, (CBitmap*)NULL);
-
-		CBitmap bitmapCancel;
-		bitmapCancel.LoadBitmapW(IDB_BITMAP_CANCEL);
-		m_toolbarlist.Add(&bitmapCancel, (CBitmap*)NULL);
-
-		CBitmap bitmapYes;
-		bitmapYes.LoadBitmapW(IDB_BITMAP_YES);
-		m_toolbarlist.Add(&bitmapYes, (CBitmap*)NULL);
+		m_toolbarlist.Create(18, 18, ILC_COLOR32, 0, 0);
+		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_PIN)));
+		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_SAVE)));
+		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_CLOSE)));
+		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_FINISH)));
 
 
 		//设置工具栏按钮图片
 		m_toolBar.GetToolBarCtrl().SetImageList(&m_toolbarlist);
 		//设置工具栏按钮大小， 和按钮中位图大小
 		SIZE sbutton, sImage;
-		sbutton.cx = 48;
-		sbutton.cy = 48;
-		sImage.cx = 32;
-		sImage.cy = 32;
+		sbutton.cx = 32;
+		sbutton.cy = 32;
+		sImage.cx = 18;
+		sImage.cy = 18;
 		m_toolBar.SetSizes(sbutton, sImage);
 		m_toolBar.SetButtons(DockTool, (UINT)4);
 
-		m_toolbarWidth = 4 * 48;
-		m_toolbarHeight = 48;
+		m_toolbarWidth = 4 * 32;
+		m_toolbarHeight = 32;
 	}
 }
 
@@ -147,4 +135,21 @@ void CCutToolbarDlg::onToolbarBtnPin()
 {
 	std::cout << "onToolbarBtnPin" << std::endl;
 	::SendMessage(this->GetParent()->GetSafeHwnd(), WM_USER_MESSAGE_PIN, 0, 0);
+}
+
+BOOL CCutToolbarDlg::OnDisplay(UINT id, NMHDR* pNMHDR, LRESULT* pResult)
+{
+	TOOLTIPTEXT* pTTT = (NMTTDISPINFO*)pNMHDR;
+	UINT nID = pNMHDR->idFrom;//获取工具栏按钮ID
+	if (nID)
+	{
+		nID = m_toolBar.CommandToIndex(nID); //根据ID获取按钮索引
+		if (nID != -1)
+		{
+			m_toolbarTips.LoadStringW(IDS_STRING_PIN + nID);
+			pTTT->lpszText = (LPWSTR)(LPCTSTR)m_toolbarTips; //设置提示信息文本
+			pTTT->hinst = AfxGetResourceHandle();
+		}
+	}
+	return TRUE;
 }

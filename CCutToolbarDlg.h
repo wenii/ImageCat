@@ -21,6 +21,7 @@ private:
 	CImageList m_toolbarlist;
 	int m_toolbarWidth;
 	int m_toolbarHeight;
+	CString m_toolbarTips;
 
 private:
 	void initToolbar();
@@ -41,4 +42,5 @@ public:
 	afx_msg void onToolbarBtnCancel();
 	afx_msg void onToolbarBtnSaveToFile();
 	afx_msg void onToolbarBtnPin();
+	BOOL  OnDisplay(UINT id, NMHDR* pNMHDR, LRESULT* pResult);
 };

@@ -38,6 +38,7 @@ private:
 	CScreenCutDlg m_screen;
 	int m_screenWidth;
 	int m_screenHeight;
+	CString m_toolbarTips;
 	 
 // 实现
 protected:
@@ -55,6 +56,7 @@ protected:
 	afx_msg void onToolbarBtnCut();
 	afx_msg long OnHotKey(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnCutQuit(WPARAM wParam, LPARAM lParam);
+	BOOL  OnDisplay(UINT id, NMHDR* pNMHDR, LRESULT* pResult);
 	DECLARE_MESSAGE_MAP()
 
 private:
