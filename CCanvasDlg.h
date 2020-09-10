@@ -34,6 +34,7 @@ public:
 private:
 	void drawImage();
 	void imageRotation(CImage* dst, CImage* src, int angle);
+	void setPngAlpha();
 
 // 对话框数据
 #ifdef AFX_DESIGN_TIME

@@ -49,6 +49,7 @@ protected:
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnPaint();
 	afx_msg HCURSOR OnQueryDragIcon();
+	afx_msg void onToolbarBtnOpen();
 	afx_msg void onToolbarBtnSave();
 	afx_msg void onToolbarBtnDelete();
 	afx_msg void onToolbarBtnRotateCCW();

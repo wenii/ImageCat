@@ -238,6 +238,7 @@
     <Image Include="res\icon1.ico" />
     <Image Include="res\ImageCat.ico" />
     <Image Include="res\ImageDraw\FinishNormal%402x.png" />
+    <Image Include="res\open.ico" />
     <Image Include="res\Pin.bmp" />
     <Image Include="res\pin.ico" />
     <Image Include="res\Rotate CCW.bmp" />

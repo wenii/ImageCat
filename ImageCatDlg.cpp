@@ -72,6 +72,7 @@ void CImageCatDlg::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CImageCatDlg, CDialogEx)
+	ON_COMMAND(ID_TOOL_BAR_BTN_OPEN, onToolbarBtnOpen)
 	ON_COMMAND(ID_TOOL_BAR_BTN_SAVE, onToolbarBtnSave)
 	ON_COMMAND(ID_TOOL_BAR_BTN_DELETE, onToolbarBtnDelete)
 	ON_COMMAND(ID_TOOL_BAR_BTN_ROTATE_CCW, onToolbarBtnRotateCCW)
@@ -231,6 +232,37 @@ HCURSOR CImageCatDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+void CImageCatDlg::onToolbarBtnOpen()
+{
+	std::cout << "CImageCatDlg::onToolbarBtnOpen" << std::endl;
+	CString filter = _T(".jpg||.jpeg||.bmp||.png||");
+	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY, filter);
+	if (dlg.DoModal() == IDOK)
+	{
+		CString name = dlg.GetPathName();
+		m_imagePath = name;
+		SetWindowText(m_imagePath);
+		CString path = m_imagePath.Left(m_imagePath.ReverseFind('\\'));
+		m_ImageNameArray.clear();
+		storageAllImageNameFromPath(path);
+		setCurrentImageIndex();
+
+		if (isSupportFileFormatImage(m_imagePath))
+		{
+			// 加载图片
+			m_canvas.loadImage(m_imagePath);
+
+			// 最大化窗口
+			ShowWindow(SW_MAXIMIZE);
+		}
+		else
+		{
+			MessageBox(_T("不支持的图片格式！"), _T("提示"), MB_OK);
+		}
+	}
+}
+
+
 void CImageCatDlg::onToolbarBtnSave()
 {
 	std::cout << "CImageCatDlg::onToolbarBtnSave" << std::endl;
@@ -363,9 +395,10 @@ void CImageCatDlg::initToolbar()
 	if (m_toolBar.CreateEx(this, TBSTYLE_FLAT, WS_CHILD | WS_VISIBLE | CBRS_ALIGN_ANY | CBRS_TOOLTIPS))
 	{
 		m_toolBar.EnableToolTips();
-		static UINT BASED_CODE DockTool[] = { ID_TOOL_BAR_BTN_SAVE, ID_TOOL_BAR_BTN_DELETE, ID_TOOL_BAR_BTN_ROTATE_CCW , ID_TOOL_BAR_BTN_ROTATE_CW, ID_TOOL_BAR_BTN_CUT };
+		static UINT BASED_CODE DockTool[] = { ID_TOOL_BAR_BTN_OPEN, ID_TOOL_BAR_BTN_SAVE, ID_TOOL_BAR_BTN_DELETE, ID_TOOL_BAR_BTN_ROTATE_CCW , ID_TOOL_BAR_BTN_ROTATE_CW, ID_TOOL_BAR_BTN_CUT };
 
 		m_toolbarlist.Create(32, 32, ILC_COLOR32, 0, 0);
+		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_OPEN)));
 		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_SAVE)));
 		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_DELETE)));
 		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_ROTATE_LEFT)));
@@ -382,9 +415,9 @@ void CImageCatDlg::initToolbar()
 		sImage.cx = 32;
 		sImage.cy = 32;
 		m_toolBar.SetSizes(sbutton, sImage);
-		m_toolBar.SetButtons(DockTool, (UINT)5);
+		m_toolBar.SetButtons(DockTool, (UINT)6);
 
-		m_toolbarWidth = 5 * 48;
+		m_toolbarWidth = 6 * 48;
 		m_toolbarHeight = 48;
 	}
 }
@@ -646,7 +679,7 @@ BOOL CImageCatDlg::OnDisplay(UINT id, NMHDR* pNMHDR, LRESULT* pResult)
 		nID = m_toolBar.CommandToIndex(nID); //根据ID获取按钮索引
 		if (nID != -1)
 		{
-			m_toolbarTips.LoadStringW(IDS_STRING_SAVE + nID);
+			m_toolbarTips.LoadStringW(IDS_STRING_OPEN + nID);
 			pTTT->lpszText = (LPWSTR)(LPCTSTR)m_toolbarTips; //设置提示信息文本
 			pTTT->hinst = AfxGetResourceHandle();
 		}

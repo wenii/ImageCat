@@ -65,6 +65,11 @@ void CCanvasDlg::loadImage(const CString& path)
 	if (result == 0)
 	{
 		m_loadSuccess = true;
+		CString suffix = m_imagePath.Right(m_imagePath.GetLength() - m_imagePath.ReverseFind('.'));
+		if (suffix == _T(".png"))
+		{
+			setPngAlpha();
+		}
 	}
 	else
 	{
@@ -169,8 +174,8 @@ void CCanvasDlg::drawImage()
 		memDC.FillSolidRect(0, 0, rectWidth, rectHeight, RGB(255, 255, 255));
 
 		SetStretchBltMode(memDC, STRETCH_HALFTONE);
-		m_image.StretchBlt(memDC, screenOrgX, screenOrgY, imageWidth, imageHeight, 0, 0, m_image.GetWidth(), m_image.GetHeight());
-
+		//m_image.StretchBlt(memDC, screenOrgX, screenOrgY, imageWidth, imageHeight, 0, 0, m_image.GetWidth(), m_image.GetHeight());
+		m_image.Draw(memDC, screenOrgX, screenOrgY, imageWidth, imageHeight, 0, 0, m_image.GetWidth(), m_image.GetHeight());
 		dc.BitBlt(0, 0, rectWidth, rectHeight, &memDC, 0, 0, SRCCOPY);
 		
 		{
@@ -204,8 +209,6 @@ void CCanvasDlg::drawImage()
 		dc.SetTextColor(RGB(255, 0, 0));
 
 		dc.TextOutW(rectWidth / 2, rectHeight / 2, _T("不支持的图片格式！"));
-
-
 	}
 }
 
@@ -318,6 +321,22 @@ void CCanvasDlg::imageRotation(CImage* dst, CImage* src, int angle)
 	}
 	free(list);											//释放工作单元 
 	free(sc);
+}
+
+void CCanvasDlg::setPngAlpha()
+{
+	int width = m_image.GetWidth();
+	int height = m_image.GetHeight();
+	for (int i = 0; i < width; i++)
+	{
+		for (int j = 0; j < height; j++)
+		{
+			unsigned char* pucColor = reinterpret_cast<unsigned char*>(m_image.GetPixelAddress(i, j));
+			pucColor[0] = pucColor[0] * pucColor[3] / 255;
+			pucColor[1] = pucColor[1] * pucColor[3] / 255;
+			pucColor[2] = pucColor[2] * pucColor[3] / 255;
+		}
+	}	
 }
 
 
