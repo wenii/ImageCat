@@ -248,9 +248,6 @@ void CImageCatDlg::onToolbarBtnOpen()
 		{
 			// 加载图片
 			m_canvas.loadImage(m_imagePath);
-
-			// 最大化窗口
-			ShowWindow(SW_MAXIMIZE);
 		}
 		else
 		{

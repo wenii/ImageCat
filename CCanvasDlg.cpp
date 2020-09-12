@@ -55,21 +55,23 @@ void CCanvasDlg::OnPaint()
 
 void CCanvasDlg::loadImage(const CString& path)
 {
+	std::cout << "CCanvasDlg::loadImage.......";
 	m_imagePath = path;
 	m_expandRatio = 1.0f;
 	m_curMoveOffset = CPoint(0, 0);
+	m_curMousePoint = CPoint(-1, -1);
 	m_delta = 0;
 	m_image.Destroy();
 
 	HRESULT result = m_image.Load(m_imagePath);
 	if (result == 0)
 	{
-		m_loadSuccess = true;
 		CString suffix = m_imagePath.Right(m_imagePath.GetLength() - m_imagePath.ReverseFind('.'));
 		if (suffix == _T(".png"))
 		{
 			setPngAlpha(&m_image);
 		}
+		m_loadSuccess = true;
 	}
 	else
 	{
@@ -369,9 +371,12 @@ void CCanvasDlg::OnMouseMove(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	if (nFlags & MK_LBUTTON) {
-		m_curMoveOffset += point - m_curMousePoint;
-		m_curMousePoint = point;
-		Invalidate();
+		if (m_curMousePoint != CPoint(-1, -1))
+		{
+			m_curMoveOffset += point - m_curMousePoint;
+			m_curMousePoint = point;
+			Invalidate();
+		}
 	}
 	CDialogEx::OnMouseMove(nFlags, point);
 }
