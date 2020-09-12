@@ -80,16 +80,22 @@ void CCanvasDlg::loadImage(const CString& path)
 
 void CCanvasDlg::rotation(int angle)
 {
-	CImage image;
-	imageRotation(&image, &m_image, angle);
-	m_image.Destroy();
-	m_image.Attach(image.Detach());
-	Invalidate();
+	if (m_loadSuccess)
+	{
+		CImage image;
+		imageRotation(&image, &m_image, angle);
+		m_image.Destroy();
+		m_image.Attach(image.Detach());
+		Invalidate();
+	}
 }
 
 void CCanvasDlg::saveFile(const CString& fileName)
 {
-	m_image.Save(fileName);
+	if (m_loadSuccess)
+	{
+		m_image.Save(fileName);
+	}
 }
 
 CDC* CCanvasDlg::getMemDC()
@@ -102,6 +108,7 @@ void CCanvasDlg::drawImage()
 {
 	if (m_imagePath == _T(""))
 	{
+		CDialogEx::OnPaint();
 		return;
 	}
 	CPaintDC dc(this); // device context for painting

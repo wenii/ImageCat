@@ -154,31 +154,28 @@ BOOL CImageCatDlg::OnInitDialog()
 
 
 	CString arg = getCommandLineArg();
-	if (arg == _T(""))
+	if (arg != _T(""))
 	{
-		return FALSE;
+		m_imagePath = arg;
+		SetWindowText(m_imagePath);
+		CString path = m_imagePath.Left(m_imagePath.ReverseFind('\\'));
+		storageAllImageNameFromPath(path);
+		setCurrentImageIndex();
+
+		if (isSupportFileFormatImage(m_imagePath))
+		{
+			// 加载图片
+			m_canvas.loadImage(m_imagePath);
+		}
+		else
+		{
+			MessageBox(_T("不支持的图片格式！"), _T("提示"), MB_OK);
+		}
 	}
 
-	m_imagePath = arg;
-	SetWindowText(m_imagePath);
-	CString path = m_imagePath.Left(m_imagePath.ReverseFind('\\'));
-	storageAllImageNameFromPath(path);
-	setCurrentImageIndex();
-
-	if (isSupportFileFormatImage(m_imagePath))
-	{
-		// 加载图片
-		m_canvas.loadImage(m_imagePath);
-
-		// 最大化窗口
-		ShowWindow(SW_MAXIMIZE);
-	}
-	else
-	{
-		MessageBox(_T("不支持的图片格式！"), _T("提示"), MB_OK);
-		exit(0);
-	}
-
+	// 最大化窗口
+	ShowWindow(SW_MAXIMIZE);
+	
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
 
@@ -266,8 +263,12 @@ void CImageCatDlg::onToolbarBtnOpen()
 void CImageCatDlg::onToolbarBtnSave()
 {
 	std::cout << "CImageCatDlg::onToolbarBtnSave" << std::endl;
+	if (m_imagePath == _T(""))
+	{
+		return;
+	}
+
 	//保存功能
-	
 	CString file = m_imagePath.Right(m_imagePath.GetLength() - m_imagePath.ReverseFind(_T('\\')) - 1);
 	CString fileName = file.Left(file.ReverseFind(_T('.')));
 	CString fileSuffix = file.Right(file.GetLength() - file.ReverseFind(_T('.')) - 1);
@@ -314,12 +315,15 @@ void CImageCatDlg::onToolbarBtnSave()
 
 void CImageCatDlg::onToolbarBtnDelete()
 {
-	std::cout << "CImageCatDlg::onToolbarBtnDelete" << std::endl;
-	if (MessageBox(_T("是否要删除文件？"), _T("删除"), MB_ICONEXCLAMATION | MB_OKCANCEL) == IDOK)
+	if (m_imagePath != _T(""))
 	{
-		std::cout << "删除了文件:" << m_imagePath << std::endl;
-		DeleteFile(m_imagePath);
-		nextImage();
+		std::cout << "CImageCatDlg::onToolbarBtnDelete" << std::endl;
+		if (MessageBox(_T("是否要删除文件？"), _T("删除"), MB_ICONEXCLAMATION | MB_OKCANCEL) == IDOK)
+		{
+			std::cout << "删除了文件:" << m_imagePath << std::endl;
+			DeleteFile(m_imagePath);
+			nextImage();
+		}
 	}
 }
 
@@ -545,9 +549,8 @@ void CImageCatDlg::OnSize(UINT nType, int cx, int cy)
 	{
 		int	toolbarX = (rect.Width() - m_toolbarWidth) / 2;
 		int toolbarY = rect.Height() - m_toolbarHeight;
-		CRect toolBarRect;
-		m_toolBar.GetWindowRect(&toolBarRect);
-		m_toolBar.SetWindowPos(NULL, toolbarX, toolbarY, m_toolbarWidth, m_toolbarHeight, 0);
+		m_toolBar.SetWindowPos(NULL, toolbarX, toolbarY, m_toolbarWidth, m_toolbarHeight, SWP_SHOWWINDOW);
+		m_toolBar.Invalidate();
 	}
 	if (m_canvas.GetSafeHwnd() != NULL)
 	{
