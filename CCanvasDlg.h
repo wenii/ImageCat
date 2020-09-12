@@ -22,6 +22,7 @@ private:
 	CString m_imagePath;
 	int m_delta;
 	CImage m_image;
+	CImage m_imageFail;
 	bool m_loadSuccess;
 	int m_toolbarWidth;
 	int m_toolbarHeight;
@@ -34,7 +35,8 @@ public:
 private:
 	void drawImage();
 	void imageRotation(CImage* dst, CImage* src, int angle);
-	void setPngAlpha();
+	void setPngAlpha(CImage* pImg);
+	void loadPngResource(CImage* pImg, UINT nnID);
 
 // 对话框数据
 #ifdef AFX_DESIGN_TIME

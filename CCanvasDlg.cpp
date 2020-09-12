@@ -68,7 +68,7 @@ void CCanvasDlg::loadImage(const CString& path)
 		CString suffix = m_imagePath.Right(m_imagePath.GetLength() - m_imagePath.ReverseFind('.'));
 		if (suffix == _T(".png"))
 		{
-			setPngAlpha();
+			setPngAlpha(&m_image);
 		}
 	}
 	else
@@ -113,103 +113,76 @@ void CCanvasDlg::drawImage()
 	int rectHeight = rect.Height();
 	std::cout << "rectHeight:" << rectHeight << "rectWidth:" << rectWidth << std::endl;
 
-
+	int imageWidth = m_imageFail.GetWidth();
+	int imageHeight = m_imageFail.GetHeight();
 	if (m_loadSuccess)
 	{
-		int orgImageWidth = m_image.GetWidth();
-		int orgImageHeight = m_image.GetHeight();
+		imageWidth = m_image.GetWidth();
+		imageHeight = m_image.GetHeight();
+	}
 
-		int imageWidth = m_image.GetWidth();
-		int imageHeight = m_image.GetHeight();
+	float widthRatio = 1.0f;
+	if (imageWidth > rectWidth)
+	{
+		widthRatio = rectWidth / (float)imageWidth;
+	}
+	float heightRatio = 1.0f;
+	if (imageHeight > rectHeight)
+	{
+		heightRatio = rectHeight / (float)imageHeight;
+	}
 
+	const float ratio = widthRatio < heightRatio ? widthRatio : heightRatio;
 
+	
 
-		float widthRatio = 1.0f;
-		if (imageWidth > rectWidth)
-		{
-			widthRatio = rectWidth / (float)imageWidth;
-		}
-		float heightRatio = 1.0f;
-		if (imageHeight > rectHeight)
-		{
-			heightRatio = rectHeight / (float)imageHeight;
-		}
+	std::cout << "imageWidht:" << imageWidth << "imageHeight:" << imageHeight << std::endl;
+	imageHeight = imageHeight * ratio * m_expandRatio;
+	imageWidth = imageWidth * ratio * m_expandRatio;
 
-		const float ratio = widthRatio < heightRatio ? widthRatio : heightRatio;
-
-		//if (imageWidth > imageHeight)   
-		//{
-		//	if (imageWidth > rectWidth)
-		//	ratio = rectWidth / (float)imageWidth;
-		//}
-		//else 
-		//{
-		//	if(imageHeight > rectHeight)
-		//	ratio = rectHeight / (float)imageHeight;
-		//}
-
-		std::cout << "imageWidht:" << imageWidth << "imageHeight:" << imageHeight << std::endl;
-		imageHeight = imageHeight * ratio * m_expandRatio;
-		imageWidth = imageWidth * ratio * m_expandRatio;
-
-		int screenOrgX = (rectWidth - imageWidth) / 2;
-		int screenOrgY = (rectHeight - imageHeight) / 2;
+	int screenOrgX = (rectWidth - imageWidth) / 2;
+	int screenOrgY = (rectHeight - imageHeight) / 2;
 
 
-		CPoint offset = m_curMoveOffset;
-		std::cout << "offset.x:" << offset.x << "offset.y:" << offset.y << std::endl;
-		std::cout << "screenOrgX:" << screenOrgX << "screenOrgY:" << screenOrgY << std::endl;
-		//if (screenOrgX < 0) {
-		screenOrgX += offset.x;
-		//}
-		//if (screenOrgY < 0) {
-		screenOrgY += offset.y;
-		//}
-
-		CDC memDC;
-		CBitmap memBitmap;
-		memDC.CreateCompatibleDC(NULL);
-		memBitmap.CreateCompatibleBitmap(&dc, rectWidth, rectHeight);
-		CBitmap* pOldBit = memDC.SelectObject(&memBitmap);
-		memDC.FillSolidRect(0, 0, rectWidth, rectHeight, RGB(255, 255, 255));
-
-		SetStretchBltMode(memDC, STRETCH_HALFTONE);
-		//m_image.StretchBlt(memDC, screenOrgX, screenOrgY, imageWidth, imageHeight, 0, 0, m_image.GetWidth(), m_image.GetHeight());
-		m_image.Draw(memDC, screenOrgX, screenOrgY, imageWidth, imageHeight, 0, 0, m_image.GetWidth(), m_image.GetHeight());
-		dc.BitBlt(0, 0, rectWidth, rectHeight, &memDC, 0, 0, SRCCOPY);
+	CPoint offset = m_curMoveOffset;
+	std::cout << "offset.x:" << offset.x << "offset.y:" << offset.y << std::endl;
+	std::cout << "screenOrgX:" << screenOrgX << "screenOrgY:" << screenOrgY << std::endl;
 		
-		{
-			if (m_memDC.m_hDC == NULL)
-			{
-				m_memDC.CreateCompatibleDC(&m_scrDC);
-			}
-			m_memBitmap.DeleteObject();
-			m_memBitmap.CreateCompatibleBitmap(&m_scrDC, rectWidth, rectHeight);
-			m_memDC.SelectObject(m_memBitmap);
-			m_memDC.BitBlt(0, 0, rectWidth, rectHeight, &memDC, 0, 0, SRCCOPY);		/// 记录数据
-		}
+	screenOrgX += offset.x;
+	screenOrgY += offset.y;
 
+	CDC memDC;
+	CBitmap memBitmap;
+	memDC.CreateCompatibleDC(NULL);
+	memBitmap.CreateCompatibleBitmap(&dc, rectWidth, rectHeight);
+	CBitmap* pOldBit = memDC.SelectObject(&memBitmap);
+	memDC.FillSolidRect(0, 0, rectWidth, rectHeight, RGB(255, 255, 255));
 
-		memBitmap.DeleteObject();
-		memDC.DeleteDC();
+	SetStretchBltMode(memDC, STRETCH_HALFTONE);
+	if (m_loadSuccess)
+	{
+		m_image.Draw(memDC, screenOrgX, screenOrgY, imageWidth, imageHeight, 0, 0, m_image.GetWidth(), m_image.GetHeight());
 	}
 	else
 	{
-		CDC memDC;
-		CBitmap memBitmap;
-		memDC.CreateCompatibleDC(NULL);
-		memBitmap.CreateCompatibleBitmap(&dc, rectWidth, rectHeight);
-		CBitmap* pOldBit = memDC.SelectObject(&memBitmap);
-		memDC.FillSolidRect(0, 0, rectWidth, rectHeight, RGB(255, 255, 255));
-		dc.BitBlt(0, 0, rectWidth, rectHeight, &memDC, 0, 0, SRCCOPY);
-		memBitmap.DeleteObject();
-		memDC.DeleteDC();
-
-		//设置字体
-		dc.SetTextColor(RGB(255, 0, 0));
-
-		dc.TextOutW(rectWidth / 2, rectHeight / 2, _T("不支持的图片格式！"));
+		m_imageFail.Draw(memDC, screenOrgX, screenOrgY, imageWidth, imageHeight, 0, 0, m_imageFail.GetWidth(), m_imageFail.GetHeight());
 	}
+	dc.BitBlt(0, 0, rectWidth, rectHeight, &memDC, 0, 0, SRCCOPY);
+		
+	{
+		if (m_memDC.m_hDC == NULL)
+		{
+			m_memDC.CreateCompatibleDC(&m_scrDC);
+		}
+		m_memBitmap.DeleteObject();
+		m_memBitmap.CreateCompatibleBitmap(&m_scrDC, rectWidth, rectHeight);
+		m_memDC.SelectObject(m_memBitmap);
+		m_memDC.BitBlt(0, 0, rectWidth, rectHeight, &memDC, 0, 0, SRCCOPY);		/// 记录数据
+	}
+
+
+	memBitmap.DeleteObject();
+	memDC.DeleteDC();
 }
 
 
@@ -323,20 +296,65 @@ void CCanvasDlg::imageRotation(CImage* dst, CImage* src, int angle)
 	free(sc);
 }
 
-void CCanvasDlg::setPngAlpha()
+void CCanvasDlg::setPngAlpha(CImage* pImg)
 {
-	int width = m_image.GetWidth();
-	int height = m_image.GetHeight();
+	int width = pImg->GetWidth();
+	int height = pImg->GetHeight();
 	for (int i = 0; i < width; i++)
 	{
 		for (int j = 0; j < height; j++)
 		{
-			unsigned char* pucColor = reinterpret_cast<unsigned char*>(m_image.GetPixelAddress(i, j));
+			unsigned char* pucColor = reinterpret_cast<unsigned char*>(pImg->GetPixelAddress(i, j));
 			pucColor[0] = pucColor[0] * pucColor[3] / 255;
 			pucColor[1] = pucColor[1] * pucColor[3] / 255;
 			pucColor[2] = pucColor[2] * pucColor[3] / 255;
 		}
 	}	
+}
+
+void CCanvasDlg::loadPngResource(CImage* pImg, UINT nID)
+{
+	pImg->Destroy();
+
+	// 查找资源
+	HRSRC hRsrc = ::FindResource(AfxGetResourceHandle(), MAKEINTRESOURCE(nID), _T("png"));
+	if (hRsrc == NULL) return ;
+
+	// 加载资源
+	HGLOBAL hImgData = ::LoadResource(AfxGetResourceHandle(), hRsrc);
+	if (hImgData == NULL)
+	{
+		::FreeResource(hImgData);
+		return;
+	}
+
+	// 锁定内存中的指定资源
+	LPVOID lpVoid = ::LockResource(hImgData);
+
+	LPSTREAM pStream = NULL;
+	DWORD dwSize = ::SizeofResource(AfxGetResourceHandle(), hRsrc);
+	HGLOBAL hNew = ::GlobalAlloc(GHND, dwSize);
+	LPBYTE lpByte = (LPBYTE)::GlobalLock(hNew);
+	::memcpy(lpByte, lpVoid, dwSize);
+
+	// 解除内存中的指定资源
+	::GlobalUnlock(hNew);
+
+	// 从指定内存创建流对象
+	HRESULT ht = ::CreateStreamOnHGlobal(hNew, TRUE, &pStream);
+	if (ht != S_OK)
+	{
+		GlobalFree(hNew);
+	}
+	else
+	{
+		// 加载图片
+		pImg->Load(pStream);
+
+		GlobalFree(hNew);
+	}
+	// 释放资源
+	::FreeResource(hImgData);
 }
 
 
@@ -384,7 +402,8 @@ BOOL CCanvasDlg::OnInitDialog()
 	CDialogEx::OnInitDialog();
 
 	// TODO:  在此添加额外的初始化
-
+	loadPngResource(&m_imageFail, IDB_PNG_FAIL);
+	setPngAlpha(&m_imageFail);
 	
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 异常: OCX 属性页应返回 FALSE

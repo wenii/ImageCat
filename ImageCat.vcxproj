@@ -233,6 +233,7 @@
     <Image Include="res\Delete.bmp" />
     <Image Include="res\delete.ico" />
     <Image Include="res\Erase.bmp" />
+    <Image Include="res\Fail_Large.png" />
     <Image Include="res\fenc.ico" />
     <Image Include="res\finish.ico" />
     <Image Include="res\icon1.ico" />

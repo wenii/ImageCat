@@ -456,7 +456,8 @@ void CImageCatDlg::storageAllImageNameFromPath(CString path)
 	{
 		CString fileName = fileData.cFileName;
 		CString fullPath = path + "\\" + fileName;
-		bool fileAttribute = GetFileAttributes(fullPath) & FILE_ATTRIBUTE_DIRECTORY;
+		DWORD attribute = GetFileAttributes(fullPath);
+		bool fileAttribute = (attribute & FILE_ATTRIBUTE_DIRECTORY) || (attribute & FILE_ATTRIBUTE_HIDDEN);
 		if (!fileAttribute)
 		{
 			if (isSupportFileFormatImage(fileName))
@@ -468,7 +469,9 @@ void CImageCatDlg::storageAllImageNameFromPath(CString path)
 		{
 			CString fileName = fileData.cFileName;
 			fullPath = path + "\\" + fileName;
-			bool fileAttribute = GetFileAttributes(fullPath) & FILE_ATTRIBUTE_DIRECTORY;
+			DWORD attribute = GetFileAttributes(fullPath);
+
+			bool fileAttribute = (attribute & FILE_ATTRIBUTE_DIRECTORY) || (attribute & FILE_ATTRIBUTE_HIDDEN);
 			if (!fileAttribute)
 			{
 				if (isSupportFileFormatImage(fileName))
