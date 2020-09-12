@@ -8,6 +8,7 @@
 #include "ImageCatDlg.h"
 #include "afxdialogex.h"
 #include "resource.h"
+#include <algorithm>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -319,7 +320,13 @@ void CImageCatDlg::onToolbarBtnDelete()
 		{
 			std::cout << "删除了文件:" << m_imagePath << std::endl;
 			DeleteFile(m_imagePath);
+			CString needDeletFile = m_imagePath;
 			nextImage();
+			auto itr = std::find(m_ImageNameArray.begin(), m_ImageNameArray.end(), needDeletFile);
+			if (itr != m_ImageNameArray.end())
+			{
+				m_ImageNameArray.erase(itr);
+			}
 		}
 	}
 }
