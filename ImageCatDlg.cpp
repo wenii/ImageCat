@@ -334,13 +334,13 @@ void CImageCatDlg::onToolbarBtnDelete()
 void CImageCatDlg::onToolbarBtnRotateCCW()
 {
 	std::cout << "CImageCatDlg::onToolbarBtnRotateCCW" << std::endl;
-	m_canvas.rotation(-90);
+	m_canvas.rotation(CCanvasDlg::ROTATE_DIR_CCW);
 }
 
 void CImageCatDlg::onToolbarBtnRotateCW()
 {
 	std::cout << "CImageCatDlg::onToolbarBtnRotateCW" << std::endl;
-	m_canvas.rotation(90);
+	m_canvas.rotation(CCanvasDlg::ROTATE_DIR_CW);
 }
 void CImageCatDlg::onToolbarBtnCut()
 {

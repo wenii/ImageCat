@@ -7,6 +7,11 @@ class CCanvasDlg : public CDialogEx
 {
 	DECLARE_DYNAMIC(CCanvasDlg)
 
+	enum RotateDir
+	{
+		ROTATE_DIR_CW,
+		ROTATE_DIR_CCW
+	};
 public:
 	CCanvasDlg(CWnd* pParent = nullptr);   // 标准构造函数
 	virtual ~CCanvasDlg();
@@ -29,9 +34,12 @@ private:
 
 public:
 	void loadImage(const CString& path);
-	void rotation(int angle);
+	void imageRotationCW(CImage* dst, CImage* src);
+	void imageRotationCCW(CImage* dst, CImage* src);
+	void rotation(RotateDir dir);
 	void saveFile(const CString& fileName);
 	CDC* getMemDC();
+	bool isPng();
 private:
 	void drawImage();
 	void imageRotation(CImage* dst, CImage* src, int angle);

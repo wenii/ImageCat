@@ -66,8 +66,7 @@ void CCanvasDlg::loadImage(const CString& path)
 	HRESULT result = m_image.Load(m_imagePath);
 	if (result == 0)
 	{
-		CString suffix = m_imagePath.Right(m_imagePath.GetLength() - m_imagePath.ReverseFind('.'));
-		if (suffix == _T(".png"))
+		if (isPng())
 		{
 			setPngAlpha(&m_image);
 		}
@@ -80,14 +79,64 @@ void CCanvasDlg::loadImage(const CString& path)
 	Invalidate();
 }
 
-void CCanvasDlg::rotation(int angle)
+void CCanvasDlg::imageRotationCW(CImage* dst, CImage* src)
+{
+	int imageWidth = src->GetWidth();
+	int imageHeight = src->GetHeight();
+	int bpd = src->GetBPP() / 8;
+	dst->Destroy();
+	dst->Create(imageHeight, imageWidth, src->GetBPP());		//建立结果位图 
+	for (int i = 0; i < imageWidth; ++i)
+	{
+		int maxIndex = imageHeight - 1;
+		for (int j = maxIndex; j >= 0; j--)
+		{
+			BYTE* lp = (BYTE*)dst->GetPixelAddress(maxIndex - j, i);			//处理结果总结果位图 
+			BYTE* s = (BYTE*)src->GetPixelAddress(i, j);
+			memcpy(lp, s, bpd);
+		}
+	}
+}
+
+void CCanvasDlg::imageRotationCCW(CImage* dst, CImage* src)
+{
+	int imageWidth = src->GetWidth();
+	int imageHeight = src->GetHeight();
+	int bpd = src->GetBPP() / 8;
+	dst->Destroy();
+	dst->Create(imageHeight, imageWidth, src->GetBPP());		//建立结果位图 
+	int widthMaxIndex = imageWidth - 1;
+	for (int i = widthMaxIndex; i >=0; i--)
+	{
+		for (int j = 0; j < imageHeight; j++)
+		{
+			BYTE* lp = (BYTE*)dst->GetPixelAddress(j, widthMaxIndex - i);			//处理结果总结果位图 
+			BYTE* s = (BYTE*)src->GetPixelAddress(i, j);
+			memcpy(lp, s, bpd);
+		}
+	}
+}
+
+void CCanvasDlg::rotation(RotateDir dir)
 {
 	if (m_loadSuccess)
 	{
 		CImage image;
-		imageRotation(&image, &m_image, angle);
+		if (dir == ROTATE_DIR_CW)
+		{
+			imageRotationCW(&image, &m_image);
+		}
+		else
+		{
+			imageRotationCCW(&image, &m_image);
+		}
 		m_image.Destroy();
 		m_image.Attach(image.Detach());
+		if (isPng())
+		{
+			m_image.SetHasAlphaChannel(true);
+		}
+
 		Invalidate();
 	}
 }
@@ -103,6 +152,12 @@ void CCanvasDlg::saveFile(const CString& fileName)
 CDC* CCanvasDlg::getMemDC()
 {
 	return &m_memDC;
+}
+
+bool CCanvasDlg::isPng()
+{
+	CString suffix = m_imagePath.Right(m_imagePath.GetLength() - m_imagePath.ReverseFind('.'));
+	return suffix == _T(".png");
 }
 
 // 绘制图片
@@ -239,6 +294,7 @@ BOOL CCanvasDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 	}
 	return CDialogEx::OnMouseWheel(nFlags, zDelta, pt);
 }
+
 
 void CCanvasDlg::imageRotation(CImage* dst, CImage* src, int angle)
 {
