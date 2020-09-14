@@ -221,35 +221,19 @@
     <None Include="res\ImageCat.rc2" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\..\..\..\bmp\bmp\32x32\bitmap2.bmp" />
-    <Image Include="..\..\..\..\..\bmp\bmp\32x32\Delete.bmp" />
-    <Image Include="..\..\..\..\..\bmp\bmp\32x32\Pin.bmp" />
-    <Image Include="..\..\..\..\..\bmp\bmp\32x32\Save image.bmp" />
-    <Image Include="res\bitmap2.bmp" />
-    <Image Include="res\bitmap4.bmp" />
     <Image Include="res\close.ico" />
-    <Image Include="res\Cut.bmp" />
     <Image Include="res\cut.ico" />
-    <Image Include="res\Delete.bmp" />
     <Image Include="res\delete.ico" />
-    <Image Include="res\Erase.bmp" />
     <Image Include="res\Fail_Large.png" />
     <Image Include="res\fenc.ico" />
     <Image Include="res\finish.ico" />
-    <Image Include="res\icon1.ico" />
     <Image Include="res\ImageCat.ico" />
-    <Image Include="res\ImageDraw\FinishNormal%402x.png" />
     <Image Include="res\open.ico" />
-    <Image Include="res\Pin.bmp" />
     <Image Include="res\pin.ico" />
-    <Image Include="res\Rotate CCW.bmp" />
-    <Image Include="res\Rotate CW.bmp" />
+    <Image Include="res\pitch.ico" />
     <Image Include="res\rotateLeft.ico" />
     <Image Include="res\rotateRight.ico" />
-    <Image Include="res\Save image.bmp" />
     <Image Include="res\save.ico" />
-    <Image Include="res\toolbar1.bmp" />
-    <Image Include="res\Yes.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

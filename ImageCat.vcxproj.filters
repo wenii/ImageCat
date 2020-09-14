@@ -89,58 +89,7 @@
     <Image Include="res\ImageCat.ico">
       <Filter>资源文件</Filter>
     </Image>
-    <Image Include="res\toolbar1.bmp">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\Delete.bmp">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\Pin.bmp">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\Save image.bmp">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="..\..\..\..\..\bmp\bmp\32x32\bitmap2.bmp">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="..\..\..\..\..\bmp\bmp\32x32\Delete.bmp">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="..\..\..\..\..\bmp\bmp\32x32\Save image.bmp">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="..\..\..\..\..\bmp\bmp\32x32\Pin.bmp">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\bitmap2.bmp">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\Rotate CCW.bmp">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\Rotate CW.bmp">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\Cut.bmp">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\bitmap4.bmp">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\Yes.bmp">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\Erase.bmp">
-      <Filter>资源文件</Filter>
-    </Image>
     <Image Include="res\fenc.ico">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\ImageDraw\FinishNormal%402x.png">
-      <Filter>资源文件</Filter>
-    </Image>
-    <Image Include="res\icon1.ico">
       <Filter>资源文件</Filter>
     </Image>
     <Image Include="res\finish.ico">
@@ -171,6 +120,9 @@
       <Filter>资源文件</Filter>
     </Image>
     <Image Include="res\Fail_Large.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\pitch.ico">
       <Filter>资源文件</Filter>
     </Image>
   </ItemGroup>

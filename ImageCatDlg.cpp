@@ -348,6 +348,7 @@ void CImageCatDlg::onToolbarBtnCut()
 	cutImage();
 }
 
+
 void CImageCatDlg::cutImage()
 {
 	m_screen.snapshot();
