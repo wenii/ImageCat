@@ -42,7 +42,8 @@ public:
 	};
 
 private:
-	CDC* m_memCDC;
+	CDC m_memCDC;
+	CBitmap m_screenDCbitmap;
 	CPoint m_firstPoint;
 	CPoint m_curPoint;
 	CPoint m_moveBeginPoint;
@@ -51,9 +52,13 @@ private:
 	bool m_startResize;
 	int m_resizeDirect;
 	CCutToolbarDlg m_toolbarDlg;
+	CPoint m_inBoxPoint;
+	CString m_colorRGB;
+	int m_screenWidth;
+	int m_screenHeight;
 
 public:
-	void setCDC(CDC* cdc);
+	void snapshot();
 	void boxChanged();
 	void reset();
 private:
@@ -77,4 +82,5 @@ public:
 	afx_msg LRESULT OnSaveToMem(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnSaveToFile(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnPin(WPARAM wParam, LPARAM lParam);
+	afx_msg long OnHotKey(WPARAM wParam, LPARAM lParam);
 };

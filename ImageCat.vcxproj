@@ -191,7 +191,6 @@
     <ClInclude Include="CCutToolbarDlg.h" />
     <ClInclude Include="CMaskDlg.h" />
     <ClInclude Include="CPinDlg.h" />
-    <ClInclude Include="CScreenCutDlg.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ImageCat.h" />
     <ClInclude Include="ImageCatDlg.h" />
@@ -204,7 +203,6 @@
     <ClCompile Include="CCutToolbarDlg.cpp" />
     <ClCompile Include="CMaskDlg.cpp" />
     <ClCompile Include="CPinDlg.cpp" />
-    <ClCompile Include="CScreenCutDlg.cpp" />
     <ClCompile Include="ImageCat.cpp" />
     <ClCompile Include="ImageCatDlg.cpp" />
     <ClCompile Include="pch.cpp">
@@ -230,7 +228,6 @@
     <Image Include="res\ImageCat.ico" />
     <Image Include="res\open.ico" />
     <Image Include="res\pin.ico" />
-    <Image Include="res\pitch.ico" />
     <Image Include="res\rotateLeft.ico" />
     <Image Include="res\rotateRight.ico" />
     <Image Include="res\save.ico" />

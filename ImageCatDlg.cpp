@@ -36,6 +36,7 @@ public:
 protected:
 	DECLARE_MESSAGE_MAP()
 public:
+	afx_msg void OnSize(UINT nType, int cx, int cy);
 };
 
 CAboutDlg::CAboutDlg() : CDialogEx(IDD_ABOUTBOX)
@@ -51,6 +52,7 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 	ON_WM_ERASEBKGND()
 	ON_WM_LBUTTONDBLCLK()
 	ON_WM_PAINT()
+	ON_WM_SIZE()
 END_MESSAGE_MAP()
 
 
@@ -144,14 +146,9 @@ BOOL CImageCatDlg::OnInitDialog()
 	m_canvas.Create(IDD_DIALOG_CANVAS, NULL);
 	m_canvas.ShowWindow(SW_SHOW);
 
-	// 初始化屏幕截图
-	m_screen.Create(IDD_DIALOG_SCREEN, NULL);
-	m_screen.ShowWindow(SW_HIDE);
-
 	// 初始化蒙板
 	m_mask.Create(IDD_DIALOG_MASK, this);
 	m_mask.ShowWindow(SW_HIDE);
-	m_mask.setCDC(m_screen.getScreenMemDC());
 
 
 	CString arg = getCommandLineArg();
@@ -351,11 +348,8 @@ void CImageCatDlg::onToolbarBtnCut()
 
 void CImageCatDlg::cutImage()
 {
-	m_screen.snapshot();
-	m_screen.SetWindowPos(NULL, 0, 0, m_screenWidth, m_screenHeight, 0);
-	m_screen.ShowWindow(SW_SHOW);
-
 	m_mask.reset();
+	m_mask.snapshot();
 	m_mask.SetWindowPos(NULL, 0, 0, m_screenWidth, m_screenHeight, 0);
 	m_mask.ShowWindow(SW_SHOW);
 }
@@ -363,7 +357,6 @@ void CImageCatDlg::cutImage()
 void CImageCatDlg::quitCutImage()
 {
 	m_mask.reset();
-	m_screen.ShowWindow(SW_HIDE);
 	m_mask.ShowWindow(SW_HIDE);
 }
 
@@ -377,7 +370,7 @@ HRESULT CImageCatDlg::OnHotKey(WPARAM wParam, LPARAM lParam)
 	else if (wParam == HOTKEY_ID_ESC)
 	{
 		std::cout << "key..........HOTKEY_ID_ESC...." << std::endl;
-		m_screen.ShowWindow(SW_HIDE);
+		//m_screen.ShowWindow(SW_HIDE);
 		m_mask.ShowWindow(SW_HIDE);
 	}
 	return TRUE;
@@ -696,4 +689,12 @@ BOOL CImageCatDlg::OnDisplay(UINT id, NMHDR* pNMHDR, LRESULT* pResult)
 		}
 	}
 	return TRUE;
+}
+
+
+void CAboutDlg::OnSize(UINT nType, int cx, int cy)
+{
+	CDialogEx::OnSize(nType, cx, cy);
+
+	// TODO: 在此处添加消息处理程序代码
 }

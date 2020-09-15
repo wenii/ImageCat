@@ -6,7 +6,6 @@
 #include <vector>
 #include "CCanvasDlg.h"
 #include "CMaskDlg.h"
-#include "CScreenCutDlg.h"
 
 // CImageCatDlg 对话框
 class CImageCatDlg : public CDialogEx
@@ -35,7 +34,6 @@ private:
 	int m_toolbarHeight;
 	CCanvasDlg m_canvas;
 	CMaskDlg m_mask;
-	CScreenCutDlg m_screen;
 	int m_screenWidth;
 	int m_screenHeight;
 	CString m_toolbarTips;
