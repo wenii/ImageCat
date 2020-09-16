@@ -9,6 +9,7 @@
 #define IDS_STRING_SAVE                 102
 #define IDS_STRING_DELETE               103
 #define IDS_STRING_ROTATE_LEFT          104
+#define IDS_STRING_MIRROR               104
 #define IDS_STRING_ROTATE_RIGHT         105
 #define IDS_STRING_CUT                  106
 #define IDS_STRING_PIN                  110
