@@ -78,7 +78,7 @@ BEGIN_MESSAGE_MAP(CImageCatDlg, CDialogEx)
 	ON_COMMAND(ID_TOOL_BAR_BTN_OPEN, onToolbarBtnOpen)
 	ON_COMMAND(ID_TOOL_BAR_BTN_SAVE, onToolbarBtnSave)
 	ON_COMMAND(ID_TOOL_BAR_BTN_DELETE, onToolbarBtnDelete)
-	ON_COMMAND(ID_TOOL_BAR_BTN_ROTATE_CCW, onToolbarBtnRotateCCW)
+	ON_COMMAND(ID_TOOL_BAR_BTN_MIRROR, onToolbarBtnMirror)
 	ON_COMMAND(ID_TOOL_BAR_BTN_ROTATE_CW, onToolbarBtnRotateCW)
 	ON_COMMAND(ID_TOOL_BAR_BTN_CUT, onToolbarBtnCut)
 	ON_MESSAGE(WM_HOTKEY, OnHotKey)
@@ -328,10 +328,10 @@ void CImageCatDlg::onToolbarBtnDelete()
 	}
 }
 
-void CImageCatDlg::onToolbarBtnRotateCCW()
+void CImageCatDlg::onToolbarBtnMirror()
 {
-	std::cout << "CImageCatDlg::onToolbarBtnRotateCCW" << std::endl;
-	m_canvas.rotation(CCanvasDlg::ROTATE_DIR_CCW);
+	std::cout << "CImageCatDlg::onToolbarBtnMirror" << std::endl;
+	m_canvas.mirror();
 }
 
 void CImageCatDlg::onToolbarBtnRotateCW()
@@ -397,13 +397,13 @@ void CImageCatDlg::initToolbar()
 	if (m_toolBar.CreateEx(this, TBSTYLE_FLAT, WS_CHILD | WS_VISIBLE | CBRS_ALIGN_ANY | CBRS_TOOLTIPS))
 	{
 		m_toolBar.EnableToolTips();
-		static UINT BASED_CODE DockTool[] = { ID_TOOL_BAR_BTN_OPEN, ID_TOOL_BAR_BTN_SAVE, ID_TOOL_BAR_BTN_DELETE, ID_TOOL_BAR_BTN_ROTATE_CCW , ID_TOOL_BAR_BTN_ROTATE_CW, ID_TOOL_BAR_BTN_CUT };
+		static UINT BASED_CODE DockTool[] = { ID_TOOL_BAR_BTN_OPEN, ID_TOOL_BAR_BTN_SAVE, ID_TOOL_BAR_BTN_DELETE, ID_TOOL_BAR_BTN_MIRROR , ID_TOOL_BAR_BTN_ROTATE_CW, ID_TOOL_BAR_BTN_CUT };
 
 		m_toolbarlist.Create(32, 32, ILC_COLOR32, 0, 0);
 		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_OPEN)));
 		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_SAVE)));
 		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_DELETE)));
-		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_ROTATE_LEFT)));
+		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_MIRROR)));
 		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_ROTATE_RIGHT)));
 		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_CUT)));
 

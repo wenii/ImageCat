@@ -37,6 +37,7 @@ public:
 	void imageRotationCW(CImage* dst, CImage* src);
 	void imageRotationCCW(CImage* dst, CImage* src);
 	void rotation(RotateDir dir);
+	void mirror();
 	void saveFile(const CString& fileName);
 	CDC* getMemDC();
 	bool isPng();

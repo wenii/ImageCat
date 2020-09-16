@@ -226,6 +226,7 @@
     <Image Include="res\fenc.ico" />
     <Image Include="res\finish.ico" />
     <Image Include="res\ImageCat.ico" />
+    <Image Include="res\mirror.ico" />
     <Image Include="res\open.ico" />
     <Image Include="res\pin.ico" />
     <Image Include="res\rotateLeft.ico" />

@@ -141,6 +141,40 @@ void CCanvasDlg::rotation(RotateDir dir)
 	}
 }
 
+void CCanvasDlg::mirror()
+{
+	if (m_loadSuccess)
+	{
+		CImage image;
+
+		int imageWidth = m_image.GetWidth();
+		int imageHeight = m_image.GetHeight();
+		int bpd = m_image.GetBPP() / 8;
+		image.Destroy();
+		image.Create(imageWidth, imageHeight, m_image.GetBPP());		//建立结果位图 
+
+		for (int i = 0; i < imageHeight; i++)
+		{
+			int maxIndex = imageWidth - 1;
+			for (int j = maxIndex; j >= 0; j--)
+			{
+				BYTE* lp = (BYTE*)image.GetPixelAddress(maxIndex - j, i);			//处理结果总结果位图 
+				BYTE* s = (BYTE*)m_image.GetPixelAddress(j, i);
+				memcpy(lp, s, bpd);
+			}
+		}
+		m_image.Destroy();
+		m_image.Attach(image.Detach());
+		if (isPng())
+		{
+			m_image.SetHasAlphaChannel(true);
+		}
+
+		Invalidate();
+	}
+	
+}
+
 void CCanvasDlg::saveFile(const CString& fileName)
 {
 	if (m_loadSuccess)

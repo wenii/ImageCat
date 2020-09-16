@@ -50,7 +50,7 @@ protected:
 	afx_msg void onToolbarBtnOpen();
 	afx_msg void onToolbarBtnSave();
 	afx_msg void onToolbarBtnDelete();
-	afx_msg void onToolbarBtnRotateCCW();
+	afx_msg void onToolbarBtnMirror();
 	afx_msg void onToolbarBtnRotateCW();
 	afx_msg void onToolbarBtnCut();
 	afx_msg long OnHotKey(WPARAM wParam, LPARAM lParam);

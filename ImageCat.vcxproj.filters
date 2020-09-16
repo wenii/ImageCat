@@ -116,5 +116,8 @@
     <Image Include="res\Fail_Large.png">
       <Filter>资源文件</Filter>
     </Image>
+    <Image Include="res\mirror.ico">
+      <Filter>资源文件</Filter>
+    </Image>
   </ItemGroup>
 </Project>
