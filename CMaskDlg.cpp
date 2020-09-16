@@ -5,6 +5,7 @@
 #include "ImageCat.h"
 #include "CMaskDlg.h"
 #include "afxdialogex.h"
+#include <math.h>
 
 #define HOTKEY_ID_COPY_COLOR 998
 
@@ -137,8 +138,8 @@ void CMaskDlg::OnPaint()
 
 		// 画圈
 		{
-			Gdiplus::Pen white(Gdiplus::Color(255, 255, 255, 255), 2);
-			Gdiplus::Pen blue(Gdiplus::Color(255, 32, 128, 240), 4);
+			Gdiplus::Pen white(Gdiplus::Color(255, 255, 255, 255), 1.6f);
+			Gdiplus::SolidBrush blueBrush(Gdiplus::Color(255, 32, 128, 240));
 			graphics.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
 
 			CPoint circlePoseArray[8] = {
@@ -154,41 +155,71 @@ void CMaskDlg::OnPaint()
 			for (int i = 0; i < 8; i++)
 			{
 				CPoint p = circlePoseArray[i];
+				graphics.FillEllipse(&blueBrush, Gdiplus::Rect(p.x - 4, p.y - 4, 8, 8));
 				graphics.DrawEllipse(&white, p.x - 5, p.y - 5, 10, 10);
-				graphics.DrawEllipse(&blue, p.x - 2, p.y - 2, 4, 4);
-					
 			}
 		}
 
 		// 画放大框
+		
 		{
-			if (m_inBoxPoint.x > 0)
+			CPoint cursorPoint(-1, -1);
+			if (m_state == STATE_BOX_SELECT)
+				cursorPoint = m_curPoint;
+			else if (m_state == STATE_BOX_ADJUST)
+				cursorPoint = m_inBoxPoint;
+			if (cursorPoint.x > 0)
 			{
 				const int poseOffset = 8;
 				const int colorPointBoxWidth = 50;
 				const int magnifierBoxWidth = 150;
 				const int centerRectWidth = 10;
-				memDC.StretchBlt(m_inBoxPoint.x + poseOffset, m_inBoxPoint.y + poseOffset, magnifierBoxWidth, magnifierBoxWidth, &m_memCDC, m_inBoxPoint.x - colorPointBoxWidth / 2, m_inBoxPoint.y - colorPointBoxWidth / 2, colorPointBoxWidth, colorPointBoxWidth, SRCCOPY);
-				Gdiplus::Pen white(Gdiplus::Color(255, 255, 255, 255), 2);
-				Gdiplus::Rect rect(m_inBoxPoint.x + poseOffset, m_inBoxPoint.y + poseOffset, magnifierBoxWidth, magnifierBoxWidth);
+				memDC.StretchBlt(cursorPoint.x + poseOffset, cursorPoint.y + poseOffset, magnifierBoxWidth, magnifierBoxWidth, &m_memCDC, cursorPoint.x - colorPointBoxWidth / 2, cursorPoint.y - colorPointBoxWidth / 2, colorPointBoxWidth, colorPointBoxWidth, SRCCOPY);
+				Gdiplus::Pen white(Gdiplus::Color(255, 255, 255, 255), 1);
+				Gdiplus::Pen blank(Gdiplus::Color(255, 0, 0, 0), 1);
+				Gdiplus::Rect rect(cursorPoint.x + poseOffset, cursorPoint.y + poseOffset, magnifierBoxWidth, magnifierBoxWidth);
 				// 画描边
-				graphics.DrawRectangle(&white, rect);
+				graphics.DrawRectangle(&blank, rect);
+				Gdiplus::Rect rectblank(cursorPoint.x + poseOffset + 1, cursorPoint.y + poseOffset + 1, magnifierBoxWidth - 2, magnifierBoxWidth - 2);
+				graphics.DrawRectangle(&white, rectblank);
 
 				Gdiplus::Pen white2(Gdiplus::Color(255, 255, 255, 255), 1);
 
 				// 画中心区域框
-				graphics.DrawRectangle(&white2, Gdiplus::Rect(m_inBoxPoint.x + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset, m_inBoxPoint.y + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset, centerRectWidth, centerRectWidth));
+				graphics.DrawRectangle(&blank, Gdiplus::Rect(cursorPoint.x + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset, cursorPoint.y + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset, centerRectWidth, centerRectWidth));
+				graphics.DrawRectangle(&white, Gdiplus::Rect(cursorPoint.x + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset + 1, cursorPoint.y + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset + 1, centerRectWidth - 2, centerRectWidth - 2));
 
 				// 画十字线
-				graphics.DrawLine(&white2, Gdiplus::Point(m_inBoxPoint.x + poseOffset, m_inBoxPoint.y + magnifierBoxWidth / 2 + poseOffset), Gdiplus::Point(m_inBoxPoint.x + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset, m_inBoxPoint.y + magnifierBoxWidth / 2 + poseOffset));
-				graphics.DrawLine(&white2, Gdiplus::Point(m_inBoxPoint.x + (magnifierBoxWidth + centerRectWidth) / 2 + poseOffset, m_inBoxPoint.y + magnifierBoxWidth / 2 + poseOffset), Gdiplus::Point(m_inBoxPoint.x + magnifierBoxWidth + poseOffset, m_inBoxPoint.y + magnifierBoxWidth / 2 + poseOffset));
 				
-				graphics.DrawLine(&white2, Gdiplus::Point(m_inBoxPoint.x + magnifierBoxWidth / 2 + poseOffset, m_inBoxPoint.y + poseOffset), Gdiplus::Point(m_inBoxPoint.x + magnifierBoxWidth / 2 + poseOffset, m_inBoxPoint.y + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset));
-				graphics.DrawLine(&white2, Gdiplus::Point(m_inBoxPoint.x + magnifierBoxWidth / 2 + poseOffset, m_inBoxPoint.y + (magnifierBoxWidth + centerRectWidth) / 2 + poseOffset), Gdiplus::Point(m_inBoxPoint.x + magnifierBoxWidth / 2 + poseOffset, m_inBoxPoint.y + magnifierBoxWidth + poseOffset));
+				Gdiplus::Pen littleBlue(Gdiplus::Color(255, 178, 211, 250), 9);
+				const int crossLeftBeginX = cursorPoint.x + poseOffset + 1;
+				const int crossLeftEndX = cursorPoint.x + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset - 1;
+				const int crossLeftY = cursorPoint.y + magnifierBoxWidth / 2 + poseOffset;
+				const int crossLeftlength = crossLeftEndX - crossLeftBeginX;
+				const int shorLineLength = crossLeftlength / 10;
+				graphics.DrawLine(&littleBlue, Gdiplus::Point(crossLeftBeginX, crossLeftY), Gdiplus::Point(crossLeftEndX, crossLeftY));
+
+				const int crossRightBeginX = cursorPoint.x + (magnifierBoxWidth + centerRectWidth) / 2 + poseOffset + 1;
+				const int crossRightEndX = cursorPoint.x + magnifierBoxWidth + poseOffset - 1;
+				const int crossRightY = cursorPoint.y + magnifierBoxWidth / 2 + poseOffset;
+				const int crossRightLength = crossRightEndX - crossRightBeginX;
+				graphics.DrawLine(&littleBlue, Gdiplus::Point(crossRightBeginX, crossRightY), Gdiplus::Point(crossRightEndX, crossRightY));
+				
+				const int crossTopX = cursorPoint.x + magnifierBoxWidth / 2 + poseOffset;
+				const int crossTopBeginY = cursorPoint.y + poseOffset + 1;
+				const int crossTopEndY = cursorPoint.y + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset - 1;
+				const int crossTopLength = crossTopEndY - crossTopBeginY;
+				graphics.DrawLine(&littleBlue, Gdiplus::Point(crossTopX, crossTopBeginY), Gdiplus::Point(crossTopX, crossTopEndY));
+
+				const int crossBottomX = cursorPoint.x + magnifierBoxWidth / 2 + poseOffset;
+				const int crossBottomBeginY = cursorPoint.y + (magnifierBoxWidth + centerRectWidth) / 2 + poseOffset + 1;
+				const int crossBottomEndY = cursorPoint.y + magnifierBoxWidth + poseOffset - 1;
+				const int crossBottomLength = crossBottomEndY - crossBottomBeginY;
+				graphics.DrawLine(&littleBlue, Gdiplus::Point(crossBottomX, crossBottomBeginY), Gdiplus::Point(crossBottomX, crossBottomEndY));
 
 				// 画下面文字背景
-				const int textBgX = m_inBoxPoint.x + poseOffset;
-				const int textBgY = m_inBoxPoint.y + poseOffset + magnifierBoxWidth;
+				const int textBgX = cursorPoint.x + poseOffset;
+				const int textBgY = cursorPoint.y + poseOffset + magnifierBoxWidth;
 				const int textBgWidth = magnifierBoxWidth;
 				const int textBgHeight = magnifierBoxWidth / 3;
 
@@ -196,19 +227,20 @@ void CMaskDlg::OnPaint()
 				Gdiplus::Rect textBbRect(textBgX, textBgY, textBgWidth, textBgHeight);
 				graphics.FillRectangle(&brush, textBbRect);
 
+
 				const int colorShowX = textBgX + 20;
 				const int colorShowY = textBgY + textBgHeight / 4;
 
 				// 画颜色方框
 				const int selectColorRegionWidth = centerRectWidth / 3;
-				memDC.StretchBlt(colorShowX, colorShowY, centerRectWidth, centerRectWidth, &m_memCDC, m_inBoxPoint.x - selectColorRegionWidth / 2, m_inBoxPoint.y - selectColorRegionWidth / 2, selectColorRegionWidth, selectColorRegionWidth, SRCCOPY);
+				memDC.StretchBlt(colorShowX, colorShowY, centerRectWidth, centerRectWidth, &m_memCDC, cursorPoint.x - selectColorRegionWidth / 2, cursorPoint.y - selectColorRegionWidth / 2, selectColorRegionWidth, selectColorRegionWidth, SRCCOPY);
 				graphics.DrawRectangle(&white2, Gdiplus::Rect(colorShowX, colorShowY, centerRectWidth, centerRectWidth));
 
 				int colorValueX = colorShowX + centerRectWidth + 10;
 				int colorValueY = colorShowY - 5;
 
 				// 获取RGB
-				COLORREF rgb = ::GetPixel(m_memCDC.GetSafeHdc(), m_inBoxPoint.x, m_inBoxPoint.y);
+				COLORREF rgb = ::GetPixel(m_memCDC.GetSafeHdc(), cursorPoint.x, cursorPoint.y);
 				int r = GetRValue(rgb);
 				int g = GetGValue(rgb);
 				int b = GetBValue(rgb);
@@ -234,6 +266,31 @@ void CMaskDlg::OnPaint()
 				CString tips = _T("按c复制颜色值");
 				graphics.DrawString(tips, tips.GetLength(), &font, Gdiplus::PointF(colorValueX - 5, colorValueY + 20), &textBrush);
 			}
+		}
+
+		// 画尺寸
+		{
+			
+			CString sizeText;
+			sizeText.Format(_T("%d x %d"), abs(selectedRect.Width()), abs(selectedRect.Height()));
+			Gdiplus::FontFamily fontf(_T("微软雅黑"));
+			Gdiplus::Font font(&fontf, 10);
+			Gdiplus::SolidBrush textBrush(Gdiplus::Color(255, 255, 255, 255));
+			Gdiplus::RectF rcf;
+			graphics.MeasureString(sizeText, sizeText.GetLength(), &font, Gdiplus::PointF(0, 0), &rcf);
+
+			const int width = rcf.Width;
+			const int height = rcf.Height;
+
+			const int sizeWidth = width + 8;
+			const int sizeHeight = height + 8;
+			const int sizeX = m_firstPoint.x;
+			const int sizeY = m_firstPoint.y - sizeHeight - 5;
+			Gdiplus::Rect textBbRect(sizeX, sizeY, sizeWidth, sizeHeight);
+			Gdiplus::SolidBrush brush(Gdiplus::Color(220, 0, 0, 0));
+			graphics.FillRectangle(&brush, textBbRect);
+
+			graphics.DrawString(sizeText, sizeText.GetLength(), &font, Gdiplus::PointF(sizeX + 4, sizeY + 4), &textBrush);
 		}
 
 		dc.BitBlt(0, 0, rectWidth, rectHeight, &memDC, 0, 0, SRCCOPY);
@@ -305,9 +362,6 @@ void CMaskDlg::fillBoxImage(CDC* cdc)
 	cdc->BitBlt(0, 0, width, height, &m_memCDC, boxRect.left , boxRect.top, SRCCOPY);
 	bitmap.Detach();
 }
-
-
-
 
 
 void CMaskDlg::OnLButtonDown(UINT nFlags, CPoint point)
