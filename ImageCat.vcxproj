@@ -228,6 +228,7 @@
     <Image Include="res\ImageCat.ico" />
     <Image Include="res\mirror.ico" />
     <Image Include="res\open.ico" />
+    <Image Include="res\pen.ico" />
     <Image Include="res\pin.ico" />
     <Image Include="res\rotateLeft.ico" />
     <Image Include="res\rotateRight.ico" />

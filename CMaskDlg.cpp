@@ -38,6 +38,7 @@ BEGIN_MESSAGE_MAP(CMaskDlg, CDialogEx)
 	ON_MESSAGE(WM_USER_MESSAGE_SAVE_TO_MEM, OnSaveToMem)
 	ON_MESSAGE(WM_USER_MESSAGE_SAVE_TO_FILE, OnSaveToFile)
 	ON_MESSAGE(WM_USER_MESSAGE_PIN, OnPin)
+	ON_MESSAGE(WM_USER_MESSAGE_DRAW, OnUserDraw)
 	ON_MESSAGE(WM_HOTKEY, OnHotKey)
 	ON_WM_PAINT()
 	ON_WM_LBUTTONDOWN()
@@ -393,12 +394,12 @@ void CMaskDlg::OnMouseMove(UINT nFlags, CPoint point)
 	}
 	
 	std::cout << "CMaskDlg::OnMouseMove state:" << m_state << std::endl;
+	CRect boxRect = getBoxRect();
+	CPoint leftPoint = boxRect.TopLeft();
+	CPoint rightPoint = boxRect.BottomRight();
 
 	if (m_state == STATE_BOX_ADJUST)
 	{
-		CRect boxRect = getBoxRect();
-		CPoint leftPoint = boxRect.TopLeft();
-		CPoint rightPoint = boxRect.BottomRight();
 		std::cout << "left.x:" << leftPoint.x << " left.y:" << leftPoint.y << "right.x:" << rightPoint.x << "right.y:" << rightPoint.y << std::endl;
 
 		// 根据当前鼠标位置确定鼠标形状
@@ -560,6 +561,18 @@ void CMaskDlg::OnMouseMove(UINT nFlags, CPoint point)
 			}
 		}
 	}
+	else if (m_state == STATE_BOX_DRAW)
+	{
+		if (point.x > leftPoint.x&& point.x < rightPoint.x && point.y > leftPoint.y&& point.y < rightPoint.y)
+		{
+			// 十字拖动图标
+			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZEALL));
+		}
+		else
+		{
+			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_NO));
+		}
+	}
 
 	CDialogEx::OnMouseMove(nFlags, point);	
 }
@@ -702,6 +715,16 @@ LRESULT CMaskDlg::OnPin(WPARAM wParam, LPARAM lParam)
 
 	return 0;
 
+}
+
+LRESULT CMaskDlg::OnUserDraw(WPARAM wParam, LPARAM lParam)
+{
+	std::cout << "OnUserDraw" << std::endl;
+	if (m_state == STATE_BOX_ADJUST)
+	{
+		m_state = STATE_BOX_DRAW;
+	}
+	return 0;
 }
 
 HRESULT CMaskDlg::OnHotKey(WPARAM wParam, LPARAM lParam)

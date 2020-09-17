@@ -9,6 +9,7 @@
 #define WM_USER_MESSAGE_SAVE_TO_MEM (WM_USER + 2)
 #define WM_USER_MESSAGE_SAVE_TO_FILE (WM_USER + 3)
 #define WM_USER_MESSAGE_PIN (WM_USER + 4)
+#define WM_USER_MESSAGE_DRAW (WM_USER + 5)
 class CMaskDlg : public CDialogEx
 {
 	DECLARE_DYNAMIC(CMaskDlg)
@@ -26,6 +27,7 @@ public:
 		STATE_BEGIN,		// 起始状态
 		STATE_BOX_SELECT,	// 框选状态
 		STATE_BOX_ADJUST,	// 调整阶段
+		STATE_BOX_DRAW,		// 画图状态
 	};
 
 	enum {
@@ -56,6 +58,7 @@ private:
 	CString m_colorRGB;
 	int m_screenWidth;
 	int m_screenHeight;
+	//CPoint  
 
 public:
 	void snapshot();
@@ -82,5 +85,6 @@ public:
 	afx_msg LRESULT OnSaveToMem(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnSaveToFile(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnPin(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnUserDraw(WPARAM wParam, LPARAM lParam);
 	afx_msg long OnHotKey(WPARAM wParam, LPARAM lParam);
 };

@@ -42,5 +42,6 @@ public:
 	afx_msg void onToolbarBtnCancel();
 	afx_msg void onToolbarBtnSaveToFile();
 	afx_msg void onToolbarBtnPin();
+	afx_msg void onToolbarBtnPen();
 	BOOL  OnDisplay(UINT id, NMHDR* pNMHDR, LRESULT* pResult);
 };

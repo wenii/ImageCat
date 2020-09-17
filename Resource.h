@@ -55,6 +55,8 @@
 #define IDD_DIALOG2                     176
 #define IDI_ICON3                       178
 #define IDI_ICON_MIRROR                 178
+#define IDI_ICON4                       179
+#define IDI_ICON_PEN                    179
 #define IDS_ABOUTBOX                    201
 #define ID_MENU_ITEM_PIN_DESTROY        1010
 #define ID_TOOL_BAR_BTN_SAVE            8001
@@ -67,6 +69,7 @@
 #define ID_TOOL_BAR_BTN_SAVE_FILE       8008
 #define ID_TOOL_BAR_BTN_PIN             8009
 #define ID_TOOL_BAR_BTN_OPEN            8010
+#define ID_TOOL_BAR_BTN_PEN				8011
 #define ID_BUTTON32771                  32771
 #define ID_BUTTON32772                  32772
 #define ID_BUTTON32773                  32773
@@ -78,7 +81,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        179
+#define _APS_NEXT_RESOURCE_VALUE        180
 #define _APS_NEXT_COMMAND_VALUE         32776
 #define _APS_NEXT_CONTROL_VALUE         1001
 #define _APS_NEXT_SYMED_VALUE           101

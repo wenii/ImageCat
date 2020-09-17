@@ -37,6 +37,7 @@ BEGIN_MESSAGE_MAP(CCutToolbarDlg, CDialogEx)
 	ON_COMMAND(ID_TOOL_BAR_BTN_CANCEL, onToolbarBtnCancel)
 	ON_COMMAND(ID_TOOL_BAR_BTN_SAVE_FILE, onToolbarBtnSaveToFile)
 	ON_COMMAND(ID_TOOL_BAR_BTN_PIN, onToolbarBtnPin)
+	ON_COMMAND(ID_TOOL_BAR_BTN_PEN, onToolbarBtnPen)
 	ON_NOTIFY_EX(TTN_NEEDTEXT, 0, OnDisplay)
 END_MESSAGE_MAP()
 
@@ -60,12 +61,14 @@ void CCutToolbarDlg::initToolbar()
 	if (m_toolBar.CreateEx(this, TBSTYLE_FLAT, WS_CHILD | WS_VISIBLE | CBRS_ALIGN_ANY | CBRS_TOOLTIPS))
 	{
 		m_toolBar.EnableToolTips();
-		static UINT BASED_CODE DockTool[] = { ID_TOOL_BAR_BTN_PIN, ID_TOOL_BAR_BTN_SAVE_FILE, ID_TOOL_BAR_BTN_CANCEL, ID_TOOL_BAR_BTN_YES };
+		static UINT BASED_CODE DockTool[] = { ID_TOOL_BAR_BTN_PEN, ID_TOOL_BAR_BTN_PIN, ID_TOOL_BAR_BTN_SAVE_FILE, ID_TOOL_BAR_BTN_CANCEL, ID_TOOL_BAR_BTN_YES };
 		m_toolbarlist.Create(18, 18, ILC_COLOR32, 0, 0);
+		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_PEN)));
 		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_PIN)));
 		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_SAVE)));
 		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_CLOSE)));
 		m_toolbarlist.Add(LoadIcon(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_ICON_FINISH)));
+		
 
 
 		//设置工具栏按钮图片
@@ -77,9 +80,9 @@ void CCutToolbarDlg::initToolbar()
 		sImage.cx = 18;
 		sImage.cy = 18;
 		m_toolBar.SetSizes(sbutton, sImage);
-		m_toolBar.SetButtons(DockTool, (UINT)4);
+		m_toolBar.SetButtons(DockTool, (UINT)5);
 
-		m_toolbarWidth = 4 * 32;
+		m_toolbarWidth = 5 * 32;
 		m_toolbarHeight = 32;
 	}
 }
@@ -135,6 +138,12 @@ void CCutToolbarDlg::onToolbarBtnPin()
 {
 	std::cout << "onToolbarBtnPin" << std::endl;
 	::SendMessage(this->GetParent()->GetSafeHwnd(), WM_USER_MESSAGE_PIN, 0, 0);
+}
+
+void CCutToolbarDlg::onToolbarBtnPen()
+{
+	std::cout << "onToolbarBtnPen" << std::endl;
+	::SendMessage(this->GetParent()->GetSafeHwnd(), WM_USER_MESSAGE_DRAW, 0, 0);
 }
 
 BOOL CCutToolbarDlg::OnDisplay(UINT id, NMHDR* pNMHDR, LRESULT* pResult)
