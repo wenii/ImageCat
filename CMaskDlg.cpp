@@ -9,6 +9,344 @@
 
 #define HOTKEY_ID_COPY_COLOR 998
 
+
+State::State(CMaskDlg* target)
+	: m_isLButtonDown(false)
+	, m_target(target)
+{
+	m_target->setState(this);
+}
+
+
+void State::switchToNextState(int state)
+{
+	switch (state)
+	{
+	case CMaskDlg::STATE_BEGIN:
+		onNextState(new BeginState(m_target));
+		delete this;
+		break;
+	case CMaskDlg::STATE_BOX_SELECT:
+		onNextState(new BoxSelectState(m_target));
+		delete this;
+		break;
+	case CMaskDlg::STATE_BOX_SELECT_COMPLETE:
+		onNextState(new BoxSelectCompleteState(m_target));
+		delete this;
+		break;
+	case CMaskDlg::STATE_BOX_DRAW:
+		break;
+	default:
+		ASSERT(FALSE);
+	}
+}
+
+void State::draw()
+{
+	CPaintDC dc(m_target);
+	CDC* imageMemDC = m_target->getImageMemDC();
+
+	CRect rect;
+	::GetClientRect(m_target->GetSafeHwnd(), &rect);
+
+	int rectWidth = rect.Width();
+	int rectHeight = rect.Height();
+	  
+	CDC drawDC;
+	CBitmap memBitmap;
+	drawDC.CreateCompatibleDC(NULL);
+	memBitmap.CreateCompatibleBitmap(&dc, rectWidth, rectHeight);
+	CBitmap* pOldBit = drawDC.SelectObject(&memBitmap);
+
+	// 画背景
+	drawDC.BitBlt(0, 0, rect.Width(), rect.Height(), imageMemDC, 0, 0, SRCCOPY);
+
+	// 画遮罩
+	Gdiplus::Graphics graphics(drawDC.m_hDC);
+	Gdiplus::SolidBrush brush(Gdiplus::Color(200, 0, 0, 0));
+	Gdiplus::Rect screenRect(rect.TopLeft().x, rect.TopLeft().y, rect.Width(), rect.Height());
+	graphics.FillRectangle(&brush, screenRect);
+
+	onDraw(&drawDC, imageMemDC);
+
+	dc.BitBlt(0, 0, rectWidth, rectHeight, &drawDC, 0, 0, SRCCOPY);
+}
+
+void State::drawBox(CDC* drawDC, CDC* imageMemDC)
+{
+	// 画框选区域
+	int width = m_boxRect.Width();
+	int height = m_boxRect.Height();
+	if (width == 0 || height == 0)
+	{
+		return;
+	}
+
+	drawDC->BitBlt(m_boxRect.TopLeft().x, m_boxRect.TopLeft().y, width, height, imageMemDC, m_boxRect.TopLeft().x, m_boxRect.TopLeft().y, SRCCOPY);
+
+	// 画线
+	{
+		CPen pen;
+		pen.CreatePen(PS_SOLID, 3, RGB(32, 128, 240));
+		CPen* pOldPen = drawDC->SelectObject(&pen);
+		CBrush* pBrush = CBrush::FromHandle((HBRUSH)GetStockObject(NULL_BRUSH));
+		CBrush* pOlBrush = drawDC->SelectObject(pBrush);
+		drawDC->Rectangle(m_boxRect.TopLeft().x, m_boxRect.TopLeft().y, m_boxRect.BottomRight().x, m_boxRect.BottomRight().y);
+		drawDC->SelectObject(pOldPen);
+		drawDC->SelectObject(pOlBrush);
+	}
+	Gdiplus::Graphics graphics(drawDC->m_hDC);
+
+	// 画圈
+	{
+		Gdiplus::Pen white(Gdiplus::Color(255, 255, 255, 255), 1.6f);
+		Gdiplus::SolidBrush blueBrush(Gdiplus::Color(255, 32, 128, 240));
+		graphics.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
+		int x = m_boxRect.TopLeft().x;
+		int y = m_boxRect.TopLeft().y;
+		CPoint circlePoseArray[8] = {
+			m_boxRect.TopLeft(),
+			CPoint(x + width / 2, y),
+			CPoint(x + width, y),
+			CPoint(x, y + height / 2),
+			CPoint(x + width, y + height / 2),
+			CPoint(x, y + height),
+			CPoint(x + width / 2, y + height),
+			CPoint(x + width, y + height)
+		};
+		for (int i = 0; i < 8; i++)
+		{
+			CPoint p = circlePoseArray[i];
+			graphics.FillEllipse(&blueBrush, Gdiplus::Rect(p.x - 4, p.y - 4, 8, 8));
+			graphics.DrawEllipse(&white, p.x - 5, p.y - 5, 10, 10);
+		}
+	}
+}
+
+void State::drawSizeText(CDC* drawDC, CDC* imageMemDC)
+{
+	CString sizeText;
+	sizeText.Format(_T("%d x %d"), abs(m_boxRect.Width()), abs(m_boxRect.Height()));
+	Gdiplus::FontFamily fontf(_T("微软雅黑"));
+	Gdiplus::Font font(&fontf, 10);
+	Gdiplus::SolidBrush textBrush(Gdiplus::Color(255, 255, 255, 255));
+	Gdiplus::RectF rcf;
+	Gdiplus::Graphics graphics(drawDC->m_hDC);
+	graphics.MeasureString(sizeText, sizeText.GetLength(), &font, Gdiplus::PointF(0, 0), &rcf);
+
+	const int width = rcf.Width;
+	const int height = rcf.Height;
+
+	const int sizeWidth = width + 8;
+	const int sizeHeight = height + 8;
+	const int sizeX = m_boxRect.TopLeft().x;
+	const int sizeY = m_boxRect.TopLeft().y - sizeHeight - 5;
+	Gdiplus::Rect textBbRect(sizeX, sizeY, sizeWidth, sizeHeight);
+	Gdiplus::SolidBrush brush(Gdiplus::Color(220, 0, 0, 0));
+	graphics.FillRectangle(&brush, textBbRect);
+
+	graphics.DrawString(sizeText, sizeText.GetLength(), &font, Gdiplus::PointF(sizeX + 4, sizeY + 4), &textBrush);
+}
+
+void State::drawMagnifierBox(CDC* drawDC, CDC* imageMemDC, CPoint cursorPoint)
+{
+
+	//CPoint cursorPoint(-1, -1);
+	//if (m_state == STATE_BOX_SELECT)
+	//	cursorPoint = m_curPoint;
+	//else if (m_state == STATE_BOX_SELECT_COMPLETE)
+	//	cursorPoint = m_inBoxPoint;
+	if (cursorPoint.x > 0)
+	{
+		const int poseOffset = 8;
+		const int colorPointBoxWidth = 50;
+		const int magnifierBoxWidth = 150;
+		const int centerRectWidth = 10;
+		drawDC->StretchBlt(cursorPoint.x + poseOffset, cursorPoint.y + poseOffset, magnifierBoxWidth, magnifierBoxWidth, imageMemDC, cursorPoint.x - colorPointBoxWidth / 2, cursorPoint.y - colorPointBoxWidth / 2, colorPointBoxWidth, colorPointBoxWidth, SRCCOPY);
+		Gdiplus::Pen white(Gdiplus::Color(255, 255, 255, 255), 1);
+		Gdiplus::Pen blank(Gdiplus::Color(255, 0, 0, 0), 1);
+		Gdiplus::Rect rect(cursorPoint.x + poseOffset, cursorPoint.y + poseOffset, magnifierBoxWidth, magnifierBoxWidth);
+		// 画描边
+		Gdiplus::Graphics graphics(drawDC->m_hDC);
+		graphics.DrawRectangle(&blank, rect);
+		Gdiplus::Rect rectblank(cursorPoint.x + poseOffset + 1, cursorPoint.y + poseOffset + 1, magnifierBoxWidth - 2, magnifierBoxWidth - 2);
+		graphics.DrawRectangle(&white, rectblank);
+
+		Gdiplus::Pen white2(Gdiplus::Color(255, 255, 255, 255), 1);
+
+		// 画中心区域框
+		graphics.DrawRectangle(&blank, Gdiplus::Rect(cursorPoint.x + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset, cursorPoint.y + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset, centerRectWidth, centerRectWidth));
+		graphics.DrawRectangle(&white, Gdiplus::Rect(cursorPoint.x + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset + 1, cursorPoint.y + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset + 1, centerRectWidth - 2, centerRectWidth - 2));
+
+		// 画十字线
+
+		Gdiplus::Pen littleBlue(Gdiplus::Color(255, 178, 211, 250), 9);
+		const int crossLeftBeginX = cursorPoint.x + poseOffset + 1;
+		const int crossLeftEndX = cursorPoint.x + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset - 1;
+		const int crossLeftY = cursorPoint.y + magnifierBoxWidth / 2 + poseOffset;
+		const int crossLeftlength = crossLeftEndX - crossLeftBeginX;
+		const int shorLineLength = crossLeftlength / 10;
+		graphics.DrawLine(&littleBlue, Gdiplus::Point(crossLeftBeginX, crossLeftY), Gdiplus::Point(crossLeftEndX, crossLeftY));
+
+		const int crossRightBeginX = cursorPoint.x + (magnifierBoxWidth + centerRectWidth) / 2 + poseOffset + 1;
+		const int crossRightEndX = cursorPoint.x + magnifierBoxWidth + poseOffset - 1;
+		const int crossRightY = cursorPoint.y + magnifierBoxWidth / 2 + poseOffset;
+		const int crossRightLength = crossRightEndX - crossRightBeginX;
+		graphics.DrawLine(&littleBlue, Gdiplus::Point(crossRightBeginX, crossRightY), Gdiplus::Point(crossRightEndX, crossRightY));
+
+		const int crossTopX = cursorPoint.x + magnifierBoxWidth / 2 + poseOffset;
+		const int crossTopBeginY = cursorPoint.y + poseOffset + 1;
+		const int crossTopEndY = cursorPoint.y + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset - 1;
+		const int crossTopLength = crossTopEndY - crossTopBeginY;
+		graphics.DrawLine(&littleBlue, Gdiplus::Point(crossTopX, crossTopBeginY), Gdiplus::Point(crossTopX, crossTopEndY));
+
+		const int crossBottomX = cursorPoint.x + magnifierBoxWidth / 2 + poseOffset;
+		const int crossBottomBeginY = cursorPoint.y + (magnifierBoxWidth + centerRectWidth) / 2 + poseOffset + 1;
+		const int crossBottomEndY = cursorPoint.y + magnifierBoxWidth + poseOffset - 1;
+		const int crossBottomLength = crossBottomEndY - crossBottomBeginY;
+		graphics.DrawLine(&littleBlue, Gdiplus::Point(crossBottomX, crossBottomBeginY), Gdiplus::Point(crossBottomX, crossBottomEndY));
+
+		// 画下面文字背景
+		const int textBgX = cursorPoint.x + poseOffset;
+		const int textBgY = cursorPoint.y + poseOffset + magnifierBoxWidth;
+		const int textBgWidth = magnifierBoxWidth;
+		const int textBgHeight = magnifierBoxWidth / 3;
+
+		Gdiplus::SolidBrush brush(Gdiplus::Color(220, 0, 0, 0));
+		Gdiplus::Rect textBbRect(textBgX, textBgY, textBgWidth, textBgHeight);
+		graphics.FillRectangle(&brush, textBbRect);
+
+
+		const int colorShowX = textBgX + 20;
+		const int colorShowY = textBgY + textBgHeight / 4;
+
+		// 画颜色方框
+		const int selectColorRegionWidth = centerRectWidth / 3;
+		drawDC->StretchBlt(colorShowX, colorShowY, centerRectWidth, centerRectWidth, imageMemDC, cursorPoint.x - selectColorRegionWidth / 2, cursorPoint.y - selectColorRegionWidth / 2, selectColorRegionWidth, selectColorRegionWidth, SRCCOPY);
+		graphics.DrawRectangle(&white2, Gdiplus::Rect(colorShowX, colorShowY, centerRectWidth, centerRectWidth));
+
+		int colorValueX = colorShowX + centerRectWidth + 10;
+		int colorValueY = colorShowY - 5;
+
+		// 获取RGB
+		COLORREF rgb = ::GetPixel(imageMemDC->GetSafeHdc(), cursorPoint.x, cursorPoint.y);
+		int r = GetRValue(rgb);
+		int g = GetGValue(rgb);
+		int b = GetBValue(rgb);
+		std::cout << "R:" << r << " G:" << g << " B:" << b << std::endl;
+		CString strR;
+		strR.Format(_T("%d,"), r);
+		CString strG;
+		strG.Format(_T("%d,"), g);
+		CString strB;
+		strB.Format(_T("%d"), b);
+
+		m_colorRGBValue.Format(_T("rgb(%d,%d,%d)"), r, g, b);
+
+		// 画rgb值文字
+		Gdiplus::SolidBrush textBrush(Gdiplus::Color(255, 255, 255, 255));
+		Gdiplus::FontFamily fontf(_T("微软雅黑"));
+		Gdiplus::Font font(&fontf, 10);
+		graphics.DrawString(strR, strR.GetLength(), &font, Gdiplus::PointF(colorValueX, colorValueY), &textBrush);
+		graphics.DrawString(strG, strG.GetLength(), &font, Gdiplus::PointF(colorValueX + 30, colorValueY), &textBrush);
+		graphics.DrawString(strB, strB.GetLength(), &font, Gdiplus::PointF(colorValueX + 60, colorValueY), &textBrush);
+
+		// 画提示文字
+		CString tips = _T("按c复制颜色值");
+		graphics.DrawString(tips, tips.GetLength(), &font, Gdiplus::PointF(colorValueX - 5, colorValueY + 20), &textBrush);
+	}
+	
+}
+
+
+BeginState::BeginState(CMaskDlg* target)
+	: State(target)
+{
+
+}
+
+
+void BeginState::onLButtonDown(CPoint point)
+{
+	m_isLButtonDown = true;
+	m_lbuttonDownPoint = point;
+
+	// 切换到框选状态
+	switchToNextState(CMaskDlg::STATE_BOX_SELECT);
+}
+
+void BeginState::onNextState(State* nextState)
+{
+	nextState->m_cursorPosition = m_cursorPosition;
+	nextState->m_lbuttonDownPoint = m_lbuttonDownPoint;
+	nextState->m_isLButtonDown = m_isLButtonDown;
+}
+
+
+
+BoxSelectState::BoxSelectState(CMaskDlg* target)
+	: State(target)
+{
+
+}
+
+void BoxSelectState::onMouseMove(CPoint point, bool isLButtonDown)
+{
+	m_cursorPosition = point;
+	m_isLButtonDown = isLButtonDown;
+	if (isLButtonDown)
+	{
+		m_boxRect = CRect(m_lbuttonDownPoint, m_cursorPosition);
+		m_target->Invalidate();
+	}
+}
+
+void BoxSelectState::onLButtonUp(CPoint point)
+{
+	m_isLButtonDown = false;
+
+	// 切换到框选完成状态
+	switchToNextState(CMaskDlg::STATE_BOX_SELECT_COMPLETE);
+}
+
+void BoxSelectState::onNextState(State* nextState)
+{
+	nextState->m_cursorPosition = m_cursorPosition;
+	nextState->m_isLButtonDown = m_isLButtonDown;
+	nextState->m_boxRect = m_boxRect;
+	m_target->Invalidate();
+}
+
+
+void BoxSelectState::onDraw(CDC* drawDC, CDC* imageMemDC)
+{
+	drawBox(drawDC, imageMemDC);
+	drawSizeText(drawDC, imageMemDC);
+	drawMagnifierBox(drawDC, imageMemDC, m_cursorPosition);
+}
+
+BoxSelectCompleteState::BoxSelectCompleteState(CMaskDlg* target)
+	: State(target)
+{
+
+}
+void BoxSelectCompleteState::onMouseMove(CPoint point, bool isLButtonDown)
+{
+
+}
+
+void BoxSelectCompleteState::onDraw(CDC* drawDC, CDC* imageMemDC)
+{
+	drawBox(drawDC, imageMemDC);
+	drawSizeText(drawDC, imageMemDC);
+	drawMagnifierBox(drawDC, imageMemDC, m_cursorPosition);
+}
+
+
+
+
+
+
 // CMaskDlg 对话框
 
 IMPLEMENT_DYNAMIC(CMaskDlg, CDialogEx)
@@ -20,6 +358,7 @@ CMaskDlg::CMaskDlg(CWnd* pParent /*=nullptr*/)
 	, m_startResize(false)
 	, m_resizeDirect(ADJUST_NONE)
 	, m_inBoxPoint(-1, -1)
+	, m_curState(NULL)
 {
 
 }
@@ -64,6 +403,13 @@ void CMaskDlg::snapshot()
 	m_memCDC.SelectObject(m_screenDCbitmap);
 
 	m_memCDC.BitBlt(0, 0, m_screenWidth, m_screenHeight, &screenDC, 0, 0, SRCCOPY);
+
+	if (m_curState != NULL)
+	{
+		delete m_curState;
+	}
+
+	new BeginState(this);
 }
 
 // CMaskDlg 消息处理程序
@@ -90,218 +436,220 @@ BOOL CMaskDlg::OnInitDialog()
 
 void CMaskDlg::OnPaint()
 {
-	CPaintDC dc(this); // device context for painting
+	//CPaintDC dc(this); // device context for painting
 					   // TODO: 在此处添加消息处理程序代码
 					   // 不为绘图消息调用 CDialogEx::OnPaint()
 
 	if (m_memCDC.m_hDC != NULL)
 	{
-		CRect rect;
-		GetClientRect(&rect);
+		m_curState->draw();
+		//CRect rect;
+		//GetClientRect(&rect);
 
-		int rectWidth = rect.Width();
-		int rectHeight = rect.Height();
+		//int rectWidth = rect.Width();
+		//int rectHeight = rect.Height();
 
-		CDC memDC;
-		CBitmap memBitmap;
-		memDC.CreateCompatibleDC(NULL);
-		memBitmap.CreateCompatibleBitmap(&dc, rectWidth, rectHeight);
-		CBitmap* pOldBit = memDC.SelectObject(&memBitmap);
+		//CDC memDC;
+		//CBitmap memBitmap;
+		//memDC.CreateCompatibleDC(NULL);
+		//memBitmap.CreateCompatibleBitmap(&dc, rectWidth, rectHeight);
+		//CBitmap* pOldBit = memDC.SelectObject(&memBitmap);
 
-		// 画背景
-		memDC.BitBlt(0, 0, rect.Width(), rect.Height(), &m_memCDC, 0, 0, SRCCOPY);
+		//// 画背景
+		//memDC.BitBlt(0, 0, rect.Width(), rect.Height(), &m_memCDC, 0, 0, SRCCOPY);
 
-		// 画遮罩
-		Gdiplus::Graphics graphics(memDC.m_hDC);
-		Gdiplus::SolidBrush brush(Gdiplus::Color(200, 0, 0, 0));
-		Gdiplus::Rect screenRect(rect.TopLeft().x, rect.TopLeft().y, rect.Width(), rect.Height());
-		graphics.FillRectangle(&brush, screenRect);
-		
+		//// 画遮罩
+		//Gdiplus::Graphics graphics(memDC.m_hDC);
+		//Gdiplus::SolidBrush brush(Gdiplus::Color(200, 0, 0, 0));
+		//Gdiplus::Rect screenRect(rect.TopLeft().x, rect.TopLeft().y, rect.Width(), rect.Height());
+		//graphics.FillRectangle(&brush, screenRect);
+		//
+		//m_curState->onDraw(&memDC, &m_memCDC);
 
 		// 画框选区域
-		CRect selectedRect(m_firstPoint.x, m_firstPoint.y, m_curPoint.x, m_curPoint.y);
-		int width = selectedRect.Width();
-		int height = selectedRect.Height();
-		memDC.BitBlt(m_firstPoint.x, m_firstPoint.y, width, height, &m_memCDC, m_firstPoint.x, m_firstPoint.y, SRCCOPY);
+		//CRect selectedRect(m_firstPoint.x, m_firstPoint.y, m_curPoint.x, m_curPoint.y);
+		//int width = selectedRect.Width();
+		//int height = selectedRect.Height();
+		//memDC.BitBlt(m_firstPoint.x, m_firstPoint.y, width, height, &m_memCDC, m_firstPoint.x, m_firstPoint.y, SRCCOPY);
 
-		// 画线
-		{
-			CPen pen;
-			pen.CreatePen(PS_SOLID, 3, RGB(32, 128, 240));
-			CPen* pOldPen = memDC.SelectObject(&pen);
-			CBrush* pBrush = CBrush::FromHandle((HBRUSH)GetStockObject(NULL_BRUSH));
-			CBrush* pOlBrush = memDC.SelectObject(pBrush);
-			CPoint clientCurPoint(m_curPoint);
-			memDC.Rectangle(m_firstPoint.x, m_firstPoint.y, m_curPoint.x, m_curPoint.y);
-			memDC.SelectObject(pOldPen);
-			memDC.SelectObject(pOlBrush);
-		}
+		//// 画线
+		//{
+		//	CPen pen;
+		//	pen.CreatePen(PS_SOLID, 3, RGB(32, 128, 240));
+		//	CPen* pOldPen = memDC.SelectObject(&pen);
+		//	CBrush* pBrush = CBrush::FromHandle((HBRUSH)GetStockObject(NULL_BRUSH));
+		//	CBrush* pOlBrush = memDC.SelectObject(pBrush);
+		//	CPoint clientCurPoint(m_curPoint);
+		//	memDC.Rectangle(m_firstPoint.x, m_firstPoint.y, m_curPoint.x, m_curPoint.y);
+		//	memDC.SelectObject(pOldPen);
+		//	memDC.SelectObject(pOlBrush);
+		//}
 
-		// 画圈
-		{
-			Gdiplus::Pen white(Gdiplus::Color(255, 255, 255, 255), 1.6f);
-			Gdiplus::SolidBrush blueBrush(Gdiplus::Color(255, 32, 128, 240));
-			graphics.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
+		//// 画圈
+		//{
+		//	Gdiplus::Pen white(Gdiplus::Color(255, 255, 255, 255), 1.6f);
+		//	Gdiplus::SolidBrush blueBrush(Gdiplus::Color(255, 32, 128, 240));
+		//	graphics.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
 
-			CPoint circlePoseArray[8] = {
-				m_firstPoint,
-				CPoint(m_firstPoint.x + width / 2, m_firstPoint.y),
-				CPoint(m_firstPoint.x + width, m_firstPoint.y),
-				CPoint(m_firstPoint.x, m_firstPoint.y + height / 2),
-				CPoint(m_firstPoint.x + width, m_firstPoint.y + height / 2),
-				CPoint(m_firstPoint.x, m_firstPoint.y + height),
-				CPoint(m_firstPoint.x + width / 2, m_firstPoint.y + height),
-				CPoint(m_firstPoint.x + width, m_firstPoint.y + height)
-			};
-			for (int i = 0; i < 8; i++)
-			{
-				CPoint p = circlePoseArray[i];
-				graphics.FillEllipse(&blueBrush, Gdiplus::Rect(p.x - 4, p.y - 4, 8, 8));
-				graphics.DrawEllipse(&white, p.x - 5, p.y - 5, 10, 10);
-			}
-		}
+		//	CPoint circlePoseArray[8] = {
+		//		m_firstPoint,
+		//		CPoint(m_firstPoint.x + width / 2, m_firstPoint.y),
+		//		CPoint(m_firstPoint.x + width, m_firstPoint.y),
+		//		CPoint(m_firstPoint.x, m_firstPoint.y + height / 2),
+		//		CPoint(m_firstPoint.x + width, m_firstPoint.y + height / 2),
+		//		CPoint(m_firstPoint.x, m_firstPoint.y + height),
+		//		CPoint(m_firstPoint.x + width / 2, m_firstPoint.y + height),
+		//		CPoint(m_firstPoint.x + width, m_firstPoint.y + height)
+		//	};
+		//	for (int i = 0; i < 8; i++)
+		//	{
+		//		CPoint p = circlePoseArray[i];
+		//		graphics.FillEllipse(&blueBrush, Gdiplus::Rect(p.x - 4, p.y - 4, 8, 8));
+		//		graphics.DrawEllipse(&white, p.x - 5, p.y - 5, 10, 10);
+		//	}
+		//}
 
-		// 画放大框
-		
-		{
-			CPoint cursorPoint(-1, -1);
-			if (m_state == STATE_BOX_SELECT)
-				cursorPoint = m_curPoint;
-			else if (m_state == STATE_BOX_ADJUST)
-				cursorPoint = m_inBoxPoint;
-			if (cursorPoint.x > 0)
-			{
-				const int poseOffset = 8;
-				const int colorPointBoxWidth = 50;
-				const int magnifierBoxWidth = 150;
-				const int centerRectWidth = 10;
-				memDC.StretchBlt(cursorPoint.x + poseOffset, cursorPoint.y + poseOffset, magnifierBoxWidth, magnifierBoxWidth, &m_memCDC, cursorPoint.x - colorPointBoxWidth / 2, cursorPoint.y - colorPointBoxWidth / 2, colorPointBoxWidth, colorPointBoxWidth, SRCCOPY);
-				Gdiplus::Pen white(Gdiplus::Color(255, 255, 255, 255), 1);
-				Gdiplus::Pen blank(Gdiplus::Color(255, 0, 0, 0), 1);
-				Gdiplus::Rect rect(cursorPoint.x + poseOffset, cursorPoint.y + poseOffset, magnifierBoxWidth, magnifierBoxWidth);
-				// 画描边
-				graphics.DrawRectangle(&blank, rect);
-				Gdiplus::Rect rectblank(cursorPoint.x + poseOffset + 1, cursorPoint.y + poseOffset + 1, magnifierBoxWidth - 2, magnifierBoxWidth - 2);
-				graphics.DrawRectangle(&white, rectblank);
+		//// 画放大框
+		//
+		//{
+		//	CPoint cursorPoint(-1, -1);
+		//	if (m_state == STATE_BOX_SELECT)
+		//		cursorPoint = m_curPoint;
+		//	else if (m_state == STATE_BOX_SELECT_COMPLETE)
+		//		cursorPoint = m_inBoxPoint;
+		//	if (cursorPoint.x > 0)
+		//	{
+		//		const int poseOffset = 8;
+		//		const int colorPointBoxWidth = 50;
+		//		const int magnifierBoxWidth = 150;
+		//		const int centerRectWidth = 10;
+		//		memDC.StretchBlt(cursorPoint.x + poseOffset, cursorPoint.y + poseOffset, magnifierBoxWidth, magnifierBoxWidth, &m_memCDC, cursorPoint.x - colorPointBoxWidth / 2, cursorPoint.y - colorPointBoxWidth / 2, colorPointBoxWidth, colorPointBoxWidth, SRCCOPY);
+		//		Gdiplus::Pen white(Gdiplus::Color(255, 255, 255, 255), 1);
+		//		Gdiplus::Pen blank(Gdiplus::Color(255, 0, 0, 0), 1);
+		//		Gdiplus::Rect rect(cursorPoint.x + poseOffset, cursorPoint.y + poseOffset, magnifierBoxWidth, magnifierBoxWidth);
+		//		// 画描边
+		//		graphics.DrawRectangle(&blank, rect);
+		//		Gdiplus::Rect rectblank(cursorPoint.x + poseOffset + 1, cursorPoint.y + poseOffset + 1, magnifierBoxWidth - 2, magnifierBoxWidth - 2);
+		//		graphics.DrawRectangle(&white, rectblank);
 
-				Gdiplus::Pen white2(Gdiplus::Color(255, 255, 255, 255), 1);
+		//		Gdiplus::Pen white2(Gdiplus::Color(255, 255, 255, 255), 1);
 
-				// 画中心区域框
-				graphics.DrawRectangle(&blank, Gdiplus::Rect(cursorPoint.x + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset, cursorPoint.y + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset, centerRectWidth, centerRectWidth));
-				graphics.DrawRectangle(&white, Gdiplus::Rect(cursorPoint.x + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset + 1, cursorPoint.y + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset + 1, centerRectWidth - 2, centerRectWidth - 2));
+		//		// 画中心区域框
+		//		graphics.DrawRectangle(&blank, Gdiplus::Rect(cursorPoint.x + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset, cursorPoint.y + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset, centerRectWidth, centerRectWidth));
+		//		graphics.DrawRectangle(&white, Gdiplus::Rect(cursorPoint.x + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset + 1, cursorPoint.y + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset + 1, centerRectWidth - 2, centerRectWidth - 2));
 
-				// 画十字线
-				
-				Gdiplus::Pen littleBlue(Gdiplus::Color(255, 178, 211, 250), 9);
-				const int crossLeftBeginX = cursorPoint.x + poseOffset + 1;
-				const int crossLeftEndX = cursorPoint.x + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset - 1;
-				const int crossLeftY = cursorPoint.y + magnifierBoxWidth / 2 + poseOffset;
-				const int crossLeftlength = crossLeftEndX - crossLeftBeginX;
-				const int shorLineLength = crossLeftlength / 10;
-				graphics.DrawLine(&littleBlue, Gdiplus::Point(crossLeftBeginX, crossLeftY), Gdiplus::Point(crossLeftEndX, crossLeftY));
+		//		// 画十字线
+		//		
+		//		Gdiplus::Pen littleBlue(Gdiplus::Color(255, 178, 211, 250), 9);
+		//		const int crossLeftBeginX = cursorPoint.x + poseOffset + 1;
+		//		const int crossLeftEndX = cursorPoint.x + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset - 1;
+		//		const int crossLeftY = cursorPoint.y + magnifierBoxWidth / 2 + poseOffset;
+		//		const int crossLeftlength = crossLeftEndX - crossLeftBeginX;
+		//		const int shorLineLength = crossLeftlength / 10;
+		//		graphics.DrawLine(&littleBlue, Gdiplus::Point(crossLeftBeginX, crossLeftY), Gdiplus::Point(crossLeftEndX, crossLeftY));
 
-				const int crossRightBeginX = cursorPoint.x + (magnifierBoxWidth + centerRectWidth) / 2 + poseOffset + 1;
-				const int crossRightEndX = cursorPoint.x + magnifierBoxWidth + poseOffset - 1;
-				const int crossRightY = cursorPoint.y + magnifierBoxWidth / 2 + poseOffset;
-				const int crossRightLength = crossRightEndX - crossRightBeginX;
-				graphics.DrawLine(&littleBlue, Gdiplus::Point(crossRightBeginX, crossRightY), Gdiplus::Point(crossRightEndX, crossRightY));
-				
-				const int crossTopX = cursorPoint.x + magnifierBoxWidth / 2 + poseOffset;
-				const int crossTopBeginY = cursorPoint.y + poseOffset + 1;
-				const int crossTopEndY = cursorPoint.y + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset - 1;
-				const int crossTopLength = crossTopEndY - crossTopBeginY;
-				graphics.DrawLine(&littleBlue, Gdiplus::Point(crossTopX, crossTopBeginY), Gdiplus::Point(crossTopX, crossTopEndY));
+		//		const int crossRightBeginX = cursorPoint.x + (magnifierBoxWidth + centerRectWidth) / 2 + poseOffset + 1;
+		//		const int crossRightEndX = cursorPoint.x + magnifierBoxWidth + poseOffset - 1;
+		//		const int crossRightY = cursorPoint.y + magnifierBoxWidth / 2 + poseOffset;
+		//		const int crossRightLength = crossRightEndX - crossRightBeginX;
+		//		graphics.DrawLine(&littleBlue, Gdiplus::Point(crossRightBeginX, crossRightY), Gdiplus::Point(crossRightEndX, crossRightY));
+		//		
+		//		const int crossTopX = cursorPoint.x + magnifierBoxWidth / 2 + poseOffset;
+		//		const int crossTopBeginY = cursorPoint.y + poseOffset + 1;
+		//		const int crossTopEndY = cursorPoint.y + (magnifierBoxWidth - centerRectWidth) / 2 + poseOffset - 1;
+		//		const int crossTopLength = crossTopEndY - crossTopBeginY;
+		//		graphics.DrawLine(&littleBlue, Gdiplus::Point(crossTopX, crossTopBeginY), Gdiplus::Point(crossTopX, crossTopEndY));
 
-				const int crossBottomX = cursorPoint.x + magnifierBoxWidth / 2 + poseOffset;
-				const int crossBottomBeginY = cursorPoint.y + (magnifierBoxWidth + centerRectWidth) / 2 + poseOffset + 1;
-				const int crossBottomEndY = cursorPoint.y + magnifierBoxWidth + poseOffset - 1;
-				const int crossBottomLength = crossBottomEndY - crossBottomBeginY;
-				graphics.DrawLine(&littleBlue, Gdiplus::Point(crossBottomX, crossBottomBeginY), Gdiplus::Point(crossBottomX, crossBottomEndY));
+		//		const int crossBottomX = cursorPoint.x + magnifierBoxWidth / 2 + poseOffset;
+		//		const int crossBottomBeginY = cursorPoint.y + (magnifierBoxWidth + centerRectWidth) / 2 + poseOffset + 1;
+		//		const int crossBottomEndY = cursorPoint.y + magnifierBoxWidth + poseOffset - 1;
+		//		const int crossBottomLength = crossBottomEndY - crossBottomBeginY;
+		//		graphics.DrawLine(&littleBlue, Gdiplus::Point(crossBottomX, crossBottomBeginY), Gdiplus::Point(crossBottomX, crossBottomEndY));
 
-				// 画下面文字背景
-				const int textBgX = cursorPoint.x + poseOffset;
-				const int textBgY = cursorPoint.y + poseOffset + magnifierBoxWidth;
-				const int textBgWidth = magnifierBoxWidth;
-				const int textBgHeight = magnifierBoxWidth / 3;
+		//		// 画下面文字背景
+		//		const int textBgX = cursorPoint.x + poseOffset;
+		//		const int textBgY = cursorPoint.y + poseOffset + magnifierBoxWidth;
+		//		const int textBgWidth = magnifierBoxWidth;
+		//		const int textBgHeight = magnifierBoxWidth / 3;
 
-				Gdiplus::SolidBrush brush(Gdiplus::Color(220, 0, 0, 0));
-				Gdiplus::Rect textBbRect(textBgX, textBgY, textBgWidth, textBgHeight);
-				graphics.FillRectangle(&brush, textBbRect);
+		//		Gdiplus::SolidBrush brush(Gdiplus::Color(220, 0, 0, 0));
+		//		Gdiplus::Rect textBbRect(textBgX, textBgY, textBgWidth, textBgHeight);
+		//		graphics.FillRectangle(&brush, textBbRect);
 
 
-				const int colorShowX = textBgX + 20;
-				const int colorShowY = textBgY + textBgHeight / 4;
+		//		const int colorShowX = textBgX + 20;
+		//		const int colorShowY = textBgY + textBgHeight / 4;
 
-				// 画颜色方框
-				const int selectColorRegionWidth = centerRectWidth / 3;
-				memDC.StretchBlt(colorShowX, colorShowY, centerRectWidth, centerRectWidth, &m_memCDC, cursorPoint.x - selectColorRegionWidth / 2, cursorPoint.y - selectColorRegionWidth / 2, selectColorRegionWidth, selectColorRegionWidth, SRCCOPY);
-				graphics.DrawRectangle(&white2, Gdiplus::Rect(colorShowX, colorShowY, centerRectWidth, centerRectWidth));
+		//		// 画颜色方框
+		//		const int selectColorRegionWidth = centerRectWidth / 3;
+		//		memDC.StretchBlt(colorShowX, colorShowY, centerRectWidth, centerRectWidth, &m_memCDC, cursorPoint.x - selectColorRegionWidth / 2, cursorPoint.y - selectColorRegionWidth / 2, selectColorRegionWidth, selectColorRegionWidth, SRCCOPY);
+		//		graphics.DrawRectangle(&white2, Gdiplus::Rect(colorShowX, colorShowY, centerRectWidth, centerRectWidth));
 
-				int colorValueX = colorShowX + centerRectWidth + 10;
-				int colorValueY = colorShowY - 5;
+		//		int colorValueX = colorShowX + centerRectWidth + 10;
+		//		int colorValueY = colorShowY - 5;
 
-				// 获取RGB
-				COLORREF rgb = ::GetPixel(m_memCDC.GetSafeHdc(), cursorPoint.x, cursorPoint.y);
-				int r = GetRValue(rgb);
-				int g = GetGValue(rgb);
-				int b = GetBValue(rgb);
-				std::cout << "R:" << r << " G:" << g << " B:" << b << std::endl;
-				CString strR;
-				strR.Format(_T("%d,"), r);
-				CString strG;
-				strG.Format(_T("%d,"), g);
-				CString strB;
-				strB.Format(_T("%d"), b);
+		//		// 获取RGB
+		//		COLORREF rgb = ::GetPixel(m_memCDC.GetSafeHdc(), cursorPoint.x, cursorPoint.y);
+		//		int r = GetRValue(rgb);
+		//		int g = GetGValue(rgb);
+		//		int b = GetBValue(rgb);
+		//		std::cout << "R:" << r << " G:" << g << " B:" << b << std::endl;
+		//		CString strR;
+		//		strR.Format(_T("%d,"), r);
+		//		CString strG;
+		//		strG.Format(_T("%d,"), g);
+		//		CString strB;
+		//		strB.Format(_T("%d"), b);
 
-				m_colorRGB.Format(_T("rgb(%d,%d,%d)"), r, g, b);
+		//		m_colorRGB.Format(_T("rgb(%d,%d,%d)"), r, g, b);
 
-				// 画rgb值文字
-				Gdiplus::SolidBrush textBrush(Gdiplus::Color(255, 255, 255, 255));
-				Gdiplus::FontFamily fontf(_T("微软雅黑"));
-				Gdiplus::Font font(&fontf, 10);
-				graphics.DrawString(strR, strR.GetLength(), &font, Gdiplus::PointF(colorValueX, colorValueY), &textBrush);
-				graphics.DrawString(strG, strG.GetLength(), &font, Gdiplus::PointF(colorValueX + 30, colorValueY), &textBrush);
-				graphics.DrawString(strB, strB.GetLength(), &font, Gdiplus::PointF(colorValueX + 60, colorValueY), &textBrush);
+		//		// 画rgb值文字
+		//		Gdiplus::SolidBrush textBrush(Gdiplus::Color(255, 255, 255, 255));
+		//		Gdiplus::FontFamily fontf(_T("微软雅黑"));
+		//		Gdiplus::Font font(&fontf, 10);
+		//		graphics.DrawString(strR, strR.GetLength(), &font, Gdiplus::PointF(colorValueX, colorValueY), &textBrush);
+		//		graphics.DrawString(strG, strG.GetLength(), &font, Gdiplus::PointF(colorValueX + 30, colorValueY), &textBrush);
+		//		graphics.DrawString(strB, strB.GetLength(), &font, Gdiplus::PointF(colorValueX + 60, colorValueY), &textBrush);
 
-				// 画提示文字
-				CString tips = _T("按c复制颜色值");
-				graphics.DrawString(tips, tips.GetLength(), &font, Gdiplus::PointF(colorValueX - 5, colorValueY + 20), &textBrush);
-			}
-		}
+		//		// 画提示文字
+		//		CString tips = _T("按c复制颜色值");
+		//		graphics.DrawString(tips, tips.GetLength(), &font, Gdiplus::PointF(colorValueX - 5, colorValueY + 20), &textBrush);
+		//	}
+		//}
 
-		// 画尺寸
-		{
-			
-			CString sizeText;
-			sizeText.Format(_T("%d x %d"), abs(selectedRect.Width()), abs(selectedRect.Height()));
-			Gdiplus::FontFamily fontf(_T("微软雅黑"));
-			Gdiplus::Font font(&fontf, 10);
-			Gdiplus::SolidBrush textBrush(Gdiplus::Color(255, 255, 255, 255));
-			Gdiplus::RectF rcf;
-			graphics.MeasureString(sizeText, sizeText.GetLength(), &font, Gdiplus::PointF(0, 0), &rcf);
+		//// 画尺寸
+		//{
+		//	
+		//	CString sizeText;
+		//	sizeText.Format(_T("%d x %d"), abs(selectedRect.Width()), abs(selectedRect.Height()));
+		//	Gdiplus::FontFamily fontf(_T("微软雅黑"));
+		//	Gdiplus::Font font(&fontf, 10);
+		//	Gdiplus::SolidBrush textBrush(Gdiplus::Color(255, 255, 255, 255));
+		//	Gdiplus::RectF rcf;
+		//	graphics.MeasureString(sizeText, sizeText.GetLength(), &font, Gdiplus::PointF(0, 0), &rcf);
 
-			const int width = rcf.Width;
-			const int height = rcf.Height;
+		//	const int width = rcf.Width;
+		//	const int height = rcf.Height;
 
-			const int sizeWidth = width + 8;
-			const int sizeHeight = height + 8;
-			const int sizeX = m_firstPoint.x;
-			const int sizeY = m_firstPoint.y - sizeHeight - 5;
-			Gdiplus::Rect textBbRect(sizeX, sizeY, sizeWidth, sizeHeight);
-			Gdiplus::SolidBrush brush(Gdiplus::Color(220, 0, 0, 0));
-			graphics.FillRectangle(&brush, textBbRect);
+		//	const int sizeWidth = width + 8;
+		//	const int sizeHeight = height + 8;
+		//	const int sizeX = m_firstPoint.x;
+		//	const int sizeY = m_firstPoint.y - sizeHeight - 5;
+		//	Gdiplus::Rect textBbRect(sizeX, sizeY, sizeWidth, sizeHeight);
+		//	Gdiplus::SolidBrush brush(Gdiplus::Color(220, 0, 0, 0));
+		//	graphics.FillRectangle(&brush, textBbRect);
 
-			graphics.DrawString(sizeText, sizeText.GetLength(), &font, Gdiplus::PointF(sizeX + 4, sizeY + 4), &textBrush);
-		}
+		//	graphics.DrawString(sizeText, sizeText.GetLength(), &font, Gdiplus::PointF(sizeX + 4, sizeY + 4), &textBrush);
+		//}
 
-		dc.BitBlt(0, 0, rectWidth, rectHeight, &memDC, 0, 0, SRCCOPY);
+		//dc.BitBlt(0, 0, rectWidth, rectHeight, &memDC, 0, 0, SRCCOPY);
 	}
 }
 
 
 void CMaskDlg::boxChanged()
 {
-	if (m_state == STATE_BOX_ADJUST)
+	if (m_state == STATE_BOX_SELECT_COMPLETE)
 	{
 		// 修改toolbar 位置
 		int toolbarWidth = m_toolbarDlg.getToolbarWidth();
@@ -321,6 +669,16 @@ void CMaskDlg::reset()
 	m_state = STATE_BEGIN;
 	m_resizeDirect = ADJUST_NONE;
 	Invalidate();
+}
+
+void CMaskDlg::setState(State* state)
+{
+	m_curState = state;
+}
+
+CDC* CMaskDlg::getImageMemDC()
+{
+	return &m_memCDC;
 }
 
 CRect CMaskDlg::getBoxRect()
@@ -369,13 +727,16 @@ void CMaskDlg::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	std::cout << "onLButtonDown:point.x:" << point.x << "point.y:" << point.y << std::endl;
-	if (m_state == STATE_BEGIN)
-	{
-		std::cout << "STATE_BEGIN -> STATE_BOX_SELECT" << std::endl;
-		m_state = STATE_BOX_SELECT;
-		m_firstPoint = point;
-	}
-	m_moveBeginPoint = point;
+
+	m_curState->onLButtonDown(point);
+
+	//if (m_state == STATE_BEGIN)
+	//{
+	//	std::cout << "STATE_BEGIN -> STATE_BOX_SELECT" << std::endl;
+	//	m_state = STATE_BOX_SELECT;
+	//	m_firstPoint = point;
+	//}
+	//m_moveBeginPoint = point;
 	
 	CDialogEx::OnLButtonDown(nFlags, point);
 }
@@ -384,195 +745,205 @@ void CMaskDlg::OnLButtonDown(UINT nFlags, CPoint point)
 void CMaskDlg::OnMouseMove(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
-	if (m_state == STATE_BOX_SELECT)
-	{
-		if (nFlags & MK_LBUTTON)
-		{
-			m_curPoint = point;
-			Invalidate();
-		}
-	}
-	
-	std::cout << "CMaskDlg::OnMouseMove state:" << m_state << std::endl;
-	CRect boxRect = getBoxRect();
-	CPoint leftPoint = boxRect.TopLeft();
-	CPoint rightPoint = boxRect.BottomRight();
 
-	if (m_state == STATE_BOX_ADJUST)
-	{
-		std::cout << "left.x:" << leftPoint.x << " left.y:" << leftPoint.y << "right.x:" << rightPoint.x << "right.y:" << rightPoint.y << std::endl;
+	m_curState->onMouseMove(point, nFlags & MK_LBUTTON);
 
-		// 根据当前鼠标位置确定鼠标形状
-		if ((m_resizeDirect == ADJUST_MOVE)
-			|| (m_resizeDirect == ADJUST_NONE && point.x > leftPoint.x && point.x < rightPoint.x && point.y > leftPoint.y && point.y < rightPoint.y))
-		{
-			// 十字拖动图标
-			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZEALL));
-			if (nFlags & MK_LBUTTON)
-			{
-				if (m_resizeDirect == ADJUST_NONE)
-				{
-					m_resizeDirect = ADJUST_MOVE;
-				}
-				CPoint offset = point - m_moveBeginPoint;
-				leftPoint += offset;
-				rightPoint += offset;
-				m_firstPoint = leftPoint;
-				m_curPoint = rightPoint;
-				m_moveBeginPoint = point;
-				boxChanged();
-			}
-			m_inBoxPoint = point;
-			Invalidate();
-		}
-		else
-		{
-			std::cout << "out of box region." << std::endl;
-			m_inBoxPoint = CPoint(-1, -1);
-			Invalidate();
 
-			if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_TOP_LEFT)
-				|| (m_resizeDirect == ADJUST_NONE && (point.x < leftPoint.x && point.y < leftPoint.y))/*左上角*/)
-			{
-				SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZENWSE));
-				if (nFlags & MK_LBUTTON)
-				{
-					if (m_resizeDirect == ADJUST_NONE)
-					{
-						m_resizeDirect = ADJUST_RESIZE_DIRECT_TOP_LEFT;
-					}
-					m_firstPoint = point;
-					m_curPoint = rightPoint;
-					boxChanged();
-				}
-			}
-			else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_BOTTOM_RIGHT)
-				|| (m_resizeDirect == ADJUST_NONE && point.x > rightPoint.x&& point.y > rightPoint.y)/*右下角*/)
-			{
-				SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZENWSE));
-				if (nFlags & MK_LBUTTON)
-				{
-					if (m_resizeDirect == ADJUST_NONE)
-					{
-						m_resizeDirect = ADJUST_RESIZE_DIRECT_BOTTOM_RIGHT;
-					}
-					m_firstPoint = leftPoint;
-					m_curPoint = point;
-					boxChanged();
-				}
-			}
-			else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_TOP_RIGHT)
-				|| (m_resizeDirect == ADJUST_NONE && point.x > rightPoint.x&& point.y < leftPoint.y)/*右上角*/)
-			{
-				SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZENESW));
-				if (nFlags & MK_LBUTTON)
-				{
-					if (m_resizeDirect == ADJUST_NONE)
-					{
-						m_resizeDirect = ADJUST_RESIZE_DIRECT_TOP_RIGHT;
-					}
-					leftPoint.y = point.y;
-					rightPoint.x = point.x;
-					m_firstPoint = leftPoint;
-					m_curPoint = rightPoint;
-					boxChanged();
-				}
-			}
-			else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_BOTTOM_LEFT)
-				|| (m_resizeDirect == ADJUST_NONE && point.x < leftPoint.x && point.y > rightPoint.y)/*左下角*/)
-			{
-				SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZENESW));
-				if (nFlags & MK_LBUTTON)
-				{
-					if (m_resizeDirect == ADJUST_NONE)
-					{
-						m_resizeDirect = ADJUST_RESIZE_DIRECT_BOTTOM_LEFT;
-					}
-					leftPoint.x = point.x;
-					rightPoint.y = point.y;
-					m_firstPoint = leftPoint;
-					m_curPoint = rightPoint;
-					boxChanged();
-				}
-			}
-			else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_RIGHT)
-				|| (m_resizeDirect == ADJUST_NONE && point.x > rightPoint.x) && (point.y > leftPoint.y&& point.y < rightPoint.y)/*右边*/)
-			{
-				SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZEWE));
-				if (nFlags & MK_LBUTTON)
-				{
-					if (m_resizeDirect == ADJUST_NONE)
-					{
-						m_resizeDirect = ADJUST_RESIZE_DIRECT_RIGHT;
-					}
-					rightPoint.x = point.x;
-					m_firstPoint = leftPoint;
-					m_curPoint = rightPoint;
-					boxChanged();
-				}
-			}
-			else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_LEFT)
-				|| (m_resizeDirect == ADJUST_NONE && point.x < leftPoint.x) && (point.y > leftPoint.y&& point.y < rightPoint.y)/*左边*/)
-			{
-				SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZEWE));
-				if (nFlags & MK_LBUTTON)
-				{
-					if (m_resizeDirect == ADJUST_NONE)
-					{
-						m_resizeDirect = ADJUST_RESIZE_DIRECT_LEFT;
-					}
-					leftPoint.x = point.x;
-					m_firstPoint = leftPoint;
-					m_curPoint = rightPoint;
-					boxChanged();
-				}
-			}
-			else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_TOP)
-				|| (m_resizeDirect == ADJUST_NONE && point.y < leftPoint.y && point.x > leftPoint.x&& point.x < rightPoint.x)/*上边*/)
-			{
-				SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZENS));
-				if (nFlags & MK_LBUTTON)
-				{
-					if (m_resizeDirect == ADJUST_NONE)
-					{
-						m_resizeDirect = ADJUST_RESIZE_DIRECT_TOP;
-					}
-					leftPoint.y = point.y;
-					m_firstPoint = leftPoint;
-					m_curPoint = rightPoint;
-					boxChanged();
-				}
-			}
-			else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_BOTTOM)
-				|| (m_resizeDirect == ADJUST_NONE && point.y > rightPoint.y&& point.x > leftPoint.x&& point.x < rightPoint.x)/*下边*/)
-			{
-				SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZENS));
-				if (nFlags & MK_LBUTTON)
-				{
-					if (m_resizeDirect == ADJUST_NONE)
-					{
-						m_resizeDirect = ADJUST_RESIZE_DIRECT_BOTTOM;
-					}
-					rightPoint.y = point.y;
-					m_firstPoint = leftPoint;
-					m_curPoint = rightPoint;
-					boxChanged();
-				}
-			}
-		}
-	}
-	else if (m_state == STATE_BOX_DRAW)
-	{
-		if (point.x > leftPoint.x&& point.x < rightPoint.x && point.y > leftPoint.y&& point.y < rightPoint.y)
-		{
-			// 十字拖动图标
-			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZEALL));
-		}
-		else
-		{
-			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_NO));
-		}
-	}
+
+
+
+	//if (m_state == STATE_BOX_SELECT)
+	//{
+	//	if (nFlags & MK_LBUTTON)
+	//	{
+	//		m_curPoint = point;
+	//		Invalidate();
+	//	}
+	//}
+	//
+	//std::cout << "CMaskDlg::OnMouseMove state:" << m_state << std::endl;
+	//CRect boxRect = getBoxRect();
+	//CPoint leftPoint = boxRect.TopLeft();
+	//CPoint rightPoint = boxRect.BottomRight();
+
+	//if (m_state == STATE_BOX_SELECT_COMPLETE)
+	//{
+	//	std::cout << "left.x:" << leftPoint.x << " left.y:" << leftPoint.y << "right.x:" << rightPoint.x << "right.y:" << rightPoint.y << std::endl;
+
+	//	// 根据当前鼠标位置确定鼠标形状
+	//	if ((m_resizeDirect == ADJUST_MOVE)
+	//		|| (m_resizeDirect == ADJUST_NONE && point.x > leftPoint.x && point.x < rightPoint.x && point.y > leftPoint.y && point.y < rightPoint.y))
+	//	{
+	//		// 十字拖动图标
+	//		SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZEALL));
+	//		if (nFlags & MK_LBUTTON)
+	//		{
+	//			if (m_resizeDirect == ADJUST_NONE)
+	//			{
+	//				m_resizeDirect = ADJUST_MOVE;
+	//			}
+	//			CPoint offset = point - m_moveBeginPoint;
+	//			leftPoint += offset;
+	//			rightPoint += offset;
+	//			m_firstPoint = leftPoint;
+	//			m_curPoint = rightPoint;
+	//			m_moveBeginPoint = point;
+	//			boxChanged();
+	//		}
+	//		m_inBoxPoint = point;
+	//		Invalidate();
+	//	}
+	//	else
+	//	{
+	//		std::cout << "out of box region." << std::endl;
+	//		m_inBoxPoint = CPoint(-1, -1);
+	//		Invalidate();
+
+	//		if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_TOP_LEFT)
+	//			|| (m_resizeDirect == ADJUST_NONE && (point.x < leftPoint.x && point.y < leftPoint.y))/*左上角*/)
+	//		{
+	//			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZENWSE));
+	//			if (nFlags & MK_LBUTTON)
+	//			{
+	//				if (m_resizeDirect == ADJUST_NONE)
+	//				{
+	//					m_resizeDirect = ADJUST_RESIZE_DIRECT_TOP_LEFT;
+	//				}
+	//				m_firstPoint = point;
+	//				m_curPoint = rightPoint;
+	//				boxChanged();
+	//			}
+	//		}
+	//		else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_BOTTOM_RIGHT)
+	//			|| (m_resizeDirect == ADJUST_NONE && point.x > rightPoint.x&& point.y > rightPoint.y)/*右下角*/)
+	//		{
+	//			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZENWSE));
+	//			if (nFlags & MK_LBUTTON)
+	//			{
+	//				if (m_resizeDirect == ADJUST_NONE)
+	//				{
+	//					m_resizeDirect = ADJUST_RESIZE_DIRECT_BOTTOM_RIGHT;
+	//				}
+	//				m_firstPoint = leftPoint;
+	//				m_curPoint = point;
+	//				boxChanged();
+	//			}
+	//		}
+	//		else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_TOP_RIGHT)
+	//			|| (m_resizeDirect == ADJUST_NONE && point.x > rightPoint.x&& point.y < leftPoint.y)/*右上角*/)
+	//		{
+	//			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZENESW));
+	//			if (nFlags & MK_LBUTTON)
+	//			{
+	//				if (m_resizeDirect == ADJUST_NONE)
+	//				{
+	//					m_resizeDirect = ADJUST_RESIZE_DIRECT_TOP_RIGHT;
+	//				}
+	//				leftPoint.y = point.y;
+	//				rightPoint.x = point.x;
+	//				m_firstPoint = leftPoint;
+	//				m_curPoint = rightPoint;
+	//				boxChanged();
+	//			}
+	//		}
+	//		else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_BOTTOM_LEFT)
+	//			|| (m_resizeDirect == ADJUST_NONE && point.x < leftPoint.x && point.y > rightPoint.y)/*左下角*/)
+	//		{
+	//			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZENESW));
+	//			if (nFlags & MK_LBUTTON)
+	//			{
+	//				if (m_resizeDirect == ADJUST_NONE)
+	//				{
+	//					m_resizeDirect = ADJUST_RESIZE_DIRECT_BOTTOM_LEFT;
+	//				}
+	//				leftPoint.x = point.x;
+	//				rightPoint.y = point.y;
+	//				m_firstPoint = leftPoint;
+	//				m_curPoint = rightPoint;
+	//				boxChanged();
+	//			}
+	//		}
+	//		else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_RIGHT)
+	//			|| (m_resizeDirect == ADJUST_NONE && point.x > rightPoint.x) && (point.y > leftPoint.y&& point.y < rightPoint.y)/*右边*/)
+	//		{
+	//			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZEWE));
+	//			if (nFlags & MK_LBUTTON)
+	//			{
+	//				if (m_resizeDirect == ADJUST_NONE)
+	//				{
+	//					m_resizeDirect = ADJUST_RESIZE_DIRECT_RIGHT;
+	//				}
+	//				rightPoint.x = point.x;
+	//				m_firstPoint = leftPoint;
+	//				m_curPoint = rightPoint;
+	//				boxChanged();
+	//			}
+	//		}
+	//		else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_LEFT)
+	//			|| (m_resizeDirect == ADJUST_NONE && point.x < leftPoint.x) && (point.y > leftPoint.y&& point.y < rightPoint.y)/*左边*/)
+	//		{
+	//			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZEWE));
+	//			if (nFlags & MK_LBUTTON)
+	//			{
+	//				if (m_resizeDirect == ADJUST_NONE)
+	//				{
+	//					m_resizeDirect = ADJUST_RESIZE_DIRECT_LEFT;
+	//				}
+	//				leftPoint.x = point.x;
+	//				m_firstPoint = leftPoint;
+	//				m_curPoint = rightPoint;
+	//				boxChanged();
+	//			}
+	//		}
+	//		else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_TOP)
+	//			|| (m_resizeDirect == ADJUST_NONE && point.y < leftPoint.y && point.x > leftPoint.x&& point.x < rightPoint.x)/*上边*/)
+	//		{
+	//			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZENS));
+	//			if (nFlags & MK_LBUTTON)
+	//			{
+	//				if (m_resizeDirect == ADJUST_NONE)
+	//				{
+	//					m_resizeDirect = ADJUST_RESIZE_DIRECT_TOP;
+	//				}
+	//				leftPoint.y = point.y;
+	//				m_firstPoint = leftPoint;
+	//				m_curPoint = rightPoint;
+	//				boxChanged();
+	//			}
+	//		}
+	//		else if ((m_resizeDirect == ADJUST_RESIZE_DIRECT_BOTTOM)
+	//			|| (m_resizeDirect == ADJUST_NONE && point.y > rightPoint.y&& point.x > leftPoint.x&& point.x < rightPoint.x)/*下边*/)
+	//		{
+	//			SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_SIZENS));
+	//			if (nFlags & MK_LBUTTON)
+	//			{
+	//				if (m_resizeDirect == ADJUST_NONE)
+	//				{
+	//					m_resizeDirect = ADJUST_RESIZE_DIRECT_BOTTOM;
+	//				}
+	//				rightPoint.y = point.y;
+	//				m_firstPoint = leftPoint;
+	//				m_curPoint = rightPoint;
+	//				boxChanged();
+	//			}
+	//		}
+	//	}
+	//}
+	//else if (m_state == STATE_BOX_DRAW)
+	//{
+	//	if (point.x > leftPoint.x&& point.x < rightPoint.x && point.y > leftPoint.y&& point.y < rightPoint.y)
+	//	{
+	//		// 十字拖动图标
+	//		while (ShowCursor(FALSE) >= 0)
+	//			ShowCursor(FALSE);
+	//	}
+	//	else
+	//	{
+	//		while (ShowCursor(TRUE) < 0)
+	//			ShowCursor(TRUE);
+	//		SetClassLong(GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_NO));
+	//	}
+	//}
 
 	CDialogEx::OnMouseMove(nFlags, point);	
 }
@@ -624,12 +995,13 @@ void CMaskDlg::OnShowWindow(BOOL bShow, UINT nStatus)
 void CMaskDlg::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
-	if (m_state == STATE_BOX_SELECT)
+	m_curState->onLButtonUp(point);
+	/*if (m_state == STATE_BOX_SELECT)
 	{
 		if (m_curPoint != m_firstPoint)
 		{
-			std::cout << "STATE_BOX_SELECT -> STATE_BOX_ADJUST" << std::endl;
-			m_state = STATE_BOX_ADJUST;
+			std::cout << "STATE_BOX_SELECT -> STATE_BOX_SELECT_COMPLETE" << std::endl;
+			m_state = STATE_BOX_SELECT_COMPLETE;
 			boxChanged();
 		}
 		else
@@ -638,13 +1010,13 @@ void CMaskDlg::OnLButtonUp(UINT nFlags, CPoint point)
 			m_state = STATE_BEGIN;
 		}
 	}
-	else if (m_state == STATE_BOX_ADJUST)
+	else if (m_state == STATE_BOX_SELECT_COMPLETE)
 	{
 		if (m_resizeDirect != ADJUST_NONE)
 		{
 			m_resizeDirect = ADJUST_NONE;
 		}
-	}
+	}*/
 	CDialogEx::OnLButtonUp(nFlags, point);
 }
 
@@ -720,7 +1092,7 @@ LRESULT CMaskDlg::OnPin(WPARAM wParam, LPARAM lParam)
 LRESULT CMaskDlg::OnUserDraw(WPARAM wParam, LPARAM lParam)
 {
 	std::cout << "OnUserDraw" << std::endl;
-	if (m_state == STATE_BOX_ADJUST)
+	if (m_state == STATE_BOX_SELECT_COMPLETE)
 	{
 		m_state = STATE_BOX_DRAW;
 	}

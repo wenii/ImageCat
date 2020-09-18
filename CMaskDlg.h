@@ -10,6 +10,10 @@
 #define WM_USER_MESSAGE_SAVE_TO_FILE (WM_USER + 3)
 #define WM_USER_MESSAGE_PIN (WM_USER + 4)
 #define WM_USER_MESSAGE_DRAW (WM_USER + 5)
+
+
+
+class State;
 class CMaskDlg : public CDialogEx
 {
 	DECLARE_DYNAMIC(CMaskDlg)
@@ -24,10 +28,10 @@ public:
 #endif
 
 	enum {
-		STATE_BEGIN,		// 起始状态
-		STATE_BOX_SELECT,	// 框选状态
-		STATE_BOX_ADJUST,	// 调整阶段
-		STATE_BOX_DRAW,		// 画图状态
+		STATE_BEGIN,				// 起始状态
+		STATE_BOX_SELECT,			// 框选状态
+		STATE_BOX_SELECT_COMPLETE,	// 调整阶段
+		STATE_BOX_DRAW,				// 画图状态
 	};
 
 	enum {
@@ -42,6 +46,8 @@ public:
 		ADJUST_RESIZE_DIRECT_BOTTOM_RIGHT,
 		ADJUST_RESIZE_DIRECT_BOTTOM_LEFT
 	};
+
+
 
 private:
 	CDC m_memCDC;
@@ -58,12 +64,17 @@ private:
 	CString m_colorRGB;
 	int m_screenWidth;
 	int m_screenHeight;
-	//CPoint  
+	CPoint m_movePoint;
+	State* m_curState;
+	CPoint m_boxLeftTopPoint;
+	CPoint m_boxRightBottmPoint;
 
 public:
 	void snapshot();
 	void boxChanged();
 	void reset();
+	void setState(State* state);
+	CDC* getImageMemDC();
 private:
 	CRect getBoxRect();
 	void fillBoxImage(CDC* cdc);
@@ -88,3 +99,69 @@ public:
 	afx_msg LRESULT OnUserDraw(WPARAM wParam, LPARAM lParam);
 	afx_msg long OnHotKey(WPARAM wParam, LPARAM lParam);
 };
+
+
+
+
+
+// 状态
+class State
+{
+	friend class CMaskDlg;
+public:
+	virtual void onMouseMove(CPoint point, bool isLButtonDown) {};
+	virtual void onLButtonDown(CPoint point) {};
+	virtual void onLButtonUp(CPoint point) {};
+	virtual void onDraw(CDC* drawDC, CDC* imageMemDC) {}
+	virtual void onNextState(State* nextState){}
+
+public:
+	void draw();
+protected:
+	void switchToNextState(int state);
+	void drawBox(CDC* drawDC, CDC* imageMemDC);
+	void drawSizeText(CDC* drawDC, CDC* imageMemDC);
+	void drawMagnifierBox(CDC* drawDC, CDC* imageMemDC, CPoint cursorPoint);
+public:
+	State(CMaskDlg* target);
+	virtual ~State() {}
+
+public:
+	CRect m_boxRect;
+	CPoint m_lbuttonDownPoint;
+	CPoint m_cursorPosition;		// 鼠标位置
+	bool m_isLButtonDown;			// 鼠标左键是否按下
+	CMaskDlg* m_target;				// 状态目标
+	CString m_colorRGBValue;		// 颜色值
+};
+
+class BeginState : public State
+{
+public:
+	BeginState(CMaskDlg* target);
+public:
+	virtual void onLButtonDown(CPoint point);
+	virtual void onNextState(State* nextState);
+};
+
+class BoxSelectState : public State
+{
+public:
+	BoxSelectState(CMaskDlg* target);
+public:
+	virtual void onMouseMove(CPoint point, bool isLButtonDown);
+	virtual void onLButtonUp(CPoint point);
+	virtual void onNextState(State* nextState);
+	virtual void onDraw(CDC* drawDC, CDC* imageMemDC);
+
+};
+
+class BoxSelectCompleteState : public State
+{
+public:
+	BoxSelectCompleteState(CMaskDlg* target);
+public:
+	virtual void onMouseMove(CPoint point, bool isLButtonDown);
+	virtual void onDraw(CDC* drawDC, CDC* imageMemDC);
+};
+
