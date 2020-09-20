@@ -1099,7 +1099,7 @@ LRESULT CMaskDlg::OnUserDraw(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-HRESULT CMaskDlg::OnHotKey(WPARAM wParam, LPARAM lParam)
+LRESULT CMaskDlg::OnHotKey(WPARAM wParam, LPARAM lParam)
 {
 	if (wParam == HOTKEY_ID_COPY_COLOR)
 	{

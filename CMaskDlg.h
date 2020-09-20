@@ -97,7 +97,7 @@ public:
 	afx_msg LRESULT OnSaveToFile(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnPin(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnUserDraw(WPARAM wParam, LPARAM lParam);
-	afx_msg long OnHotKey(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnHotKey(WPARAM wParam, LPARAM lParam);
 };
 
 
