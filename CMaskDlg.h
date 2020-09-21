@@ -11,7 +11,25 @@
 #define WM_USER_MESSAGE_PIN (WM_USER + 4)
 #define WM_USER_MESSAGE_DRAW (WM_USER + 5)
 
+enum {
+	STATE_BEGIN,						// 起始状态
+	STATE_BOX_SELECT,					// 框选状态
+	STATE_BOX_SELECT_COMPLETE,			// 调整阶段
+	STATE_DRAW_LINE,				// 画笔绘画状态
+};
 
+enum {
+	ADJUST_NONE,
+	ADJUST_MOVE,
+	ADJUST_RESIZE_DIRECT_RIGHT,
+	ADJUST_RESIZE_DIRECT_LEFT,
+	ADJUST_RESIZE_DIRECT_TOP,
+	ADJUST_RESIZE_DIRECT_BOTTOM,
+	ADJUST_RESIZE_DIRECT_TOP_RIGHT,
+	ADJUST_RESIZE_DIRECT_TOP_LEFT,
+	ADJUST_RESIZE_DIRECT_BOTTOM_RIGHT,
+	ADJUST_RESIZE_DIRECT_BOTTOM_LEFT
+};
 
 class State;
 class CMaskDlg : public CDialogEx
@@ -27,25 +45,7 @@ public:
 	enum { IDD = IDD_DIALOG_MASK };
 #endif
 
-	enum {
-		STATE_BEGIN,				// 起始状态
-		STATE_BOX_SELECT,			// 框选状态
-		STATE_BOX_SELECT_COMPLETE,	// 调整阶段
-		STATE_BOX_DRAW,				// 画图状态
-	};
 
-	enum {
-		ADJUST_NONE,
-		ADJUST_MOVE,
-		ADJUST_RESIZE_DIRECT_RIGHT,
-		ADJUST_RESIZE_DIRECT_LEFT,
-		ADJUST_RESIZE_DIRECT_TOP,
-		ADJUST_RESIZE_DIRECT_BOTTOM,
-		ADJUST_RESIZE_DIRECT_TOP_RIGHT,
-		ADJUST_RESIZE_DIRECT_TOP_LEFT,
-		ADJUST_RESIZE_DIRECT_BOTTOM_RIGHT,
-		ADJUST_RESIZE_DIRECT_BOTTOM_LEFT
-	};
 
 
 
@@ -72,6 +72,7 @@ private:
 public:
 	void snapshot();
 	void boxChanged();
+	void moveToolbar(CPoint point);
 	void reset();
 	void setState(State* state);
 	CDC* getImageMemDC();
@@ -96,12 +97,9 @@ public:
 	afx_msg LRESULT OnSaveToMem(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnSaveToFile(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnPin(WPARAM wParam, LPARAM lParam);
-	afx_msg LRESULT OnUserDraw(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnDrawLine(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnHotKey(WPARAM wParam, LPARAM lParam);
 };
-
-
-
 
 
 // 状态
@@ -159,9 +157,29 @@ public:
 class BoxSelectCompleteState : public State
 {
 public:
-	BoxSelectCompleteState(CMaskDlg* target);
+	int m_resizeDirect;
+	CPoint m_moveBeginPoint;
+	bool m_isMouseInBox;
+
 public:
+	BoxSelectCompleteState(CMaskDlg* target);
+
+public:
+	void adjustBoxRect();
+public:
+	virtual void onLButtonDown(CPoint point);
+	virtual void onLButtonUp(CPoint point);
 	virtual void onMouseMove(CPoint point, bool isLButtonDown);
 	virtual void onDraw(CDC* drawDC, CDC* imageMemDC);
+	virtual void onNextState(State* nextState);
+};
+
+class DrawLineState : public State
+{
+public:
+	DrawLineState(CMaskDlg* target);
+public:
+	virtual void onDraw(CDC* drawDC, CDC* imageMemDC);
+	virtual void onMouseMove(CPoint point, bool isLButtonDown);
 };
 
