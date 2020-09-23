@@ -31,6 +31,11 @@ enum {
 	ADJUST_RESIZE_DIRECT_BOTTOM_LEFT
 };
 
+enum 
+{
+	TIMER_ID_DRAW = 1
+};
+
 class State;
 class CMaskDlg : public CDialogEx
 {
@@ -76,6 +81,8 @@ public:
 	void reset();
 	void setState(State* state);
 	CDC* getImageMemDC();
+	void startTimer();
+	void stopTimer();
 private:
 	CRect getBoxRect();
 	void fillBoxImage(CDC* cdc);
@@ -99,6 +106,7 @@ public:
 	afx_msg LRESULT OnPin(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnDrawLine(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnHotKey(WPARAM wParam, LPARAM lParam);
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
 };
 
 
@@ -157,11 +165,6 @@ public:
 class BoxSelectCompleteState : public State
 {
 public:
-	int m_resizeDirect;
-	CPoint m_moveBeginPoint;
-	bool m_isMouseInBox;
-
-public:
 	BoxSelectCompleteState(CMaskDlg* target);
 
 public:
@@ -172,14 +175,26 @@ public:
 	virtual void onMouseMove(CPoint point, bool isLButtonDown);
 	virtual void onDraw(CDC* drawDC, CDC* imageMemDC);
 	virtual void onNextState(State* nextState);
+
+public:
+	int m_resizeDirect;
+	CPoint m_moveBeginPoint;
+	bool m_isMouseInBox;
 };
 
 class DrawLineState : public State
 {
 public:
 	DrawLineState(CMaskDlg* target);
+	~DrawLineState();
 public:
 	virtual void onDraw(CDC* drawDC, CDC* imageMemDC);
 	virtual void onMouseMove(CPoint point, bool isLButtonDown);
+
+private:
+	void drawCursor(CDC* drawDC);
+
+private:
+	bool m_isMouseInBox;
 };
 

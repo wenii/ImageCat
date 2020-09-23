@@ -544,18 +544,27 @@ void BoxSelectCompleteState::onNextState(State* nextState)
 
 DrawLineState::DrawLineState(CMaskDlg* target)
 	: State(target)
+	, m_isMouseInBox(false)
 {
+	m_target->startTimer();
+}
 
+DrawLineState::~DrawLineState()
+{
+	m_target->stopTimer();
 }
 
 void DrawLineState::onDraw(CDC* drawDC, CDC* imageMemDC)
 {
 	drawBox(drawDC, imageMemDC);
 	drawSizeText(drawDC, imageMemDC);
+	drawCursor(drawDC);
 }
 
 void DrawLineState::onMouseMove(CPoint point, bool isLButtonDown)
 {
+	m_cursorPosition = point;
+	m_isLButtonDown = isLButtonDown;
 	CPoint leftPoint = m_boxRect.TopLeft();
 	CPoint rightPoint = m_boxRect.BottomRight();
 	if (point.x > leftPoint.x && point.x < rightPoint.x && point.y > leftPoint.y && point.y < rightPoint.y)
@@ -563,12 +572,69 @@ void DrawLineState::onMouseMove(CPoint point, bool isLButtonDown)
 		// 十字拖动图标
 		while (ShowCursor(FALSE) >= 0)
 			ShowCursor(FALSE);
+		m_isMouseInBox = true;
+		m_target->Invalidate();
 	}
 	else
 	{
 		while (ShowCursor(TRUE) < 0)
 			ShowCursor(TRUE);
 		SetClassLong(m_target->GetSafeHwnd(), GCL_HCURSOR, (LONG)LoadCursor(NULL, IDC_NO));
+		if (m_isMouseInBox)
+		{
+			m_isMouseInBox = false;
+			m_target->Invalidate();
+		}
+	}
+}
+
+void DrawLineState::drawCursor(CDC* drawDC)
+{
+	if (m_isMouseInBox)
+	{
+		Gdiplus::Graphics graphics(drawDC->m_hDC);
+		Gdiplus::SolidBrush brush(Gdiplus::Color(255, 255, 0, 0));
+		const int centerRectWidth = 4;
+		const int centerRectX = m_cursorPosition.x - centerRectWidth / 2;
+		const int centerRectY = m_cursorPosition.y - centerRectWidth / 2;
+
+		// 画中间方块
+		Gdiplus::Rect centerRectangleRect(centerRectX, centerRectY, centerRectWidth, centerRectWidth);
+		graphics.FillRectangle(&brush, centerRectangleRect);
+
+		// 画左边线
+		const int leftLineWidth = centerRectWidth * 2;
+		const int leftLineHight = centerRectWidth;
+		const int offset = centerRectWidth;
+		const int leftLineX = centerRectX - offset - leftLineWidth;
+		const int leftLineY = centerRectY;
+		Gdiplus::Rect leftLineRect(leftLineX, leftLineY, leftLineWidth, leftLineHight);
+		graphics.FillRectangle(&brush, leftLineRect);
+
+		// 画右边线
+		const int rightLineWidth = leftLineWidth;
+		const int rightLineHeight = leftLineHight;
+		const int rightLineX = centerRectX + centerRectWidth + offset;
+		const int rightLineY = leftLineY;
+		Gdiplus::Rect rightLineRect(rightLineX, rightLineY, rightLineWidth, rightLineHeight);
+		graphics.FillRectangle(&brush, rightLineRect);
+
+		// 画上边线
+		const int topLineWidth = centerRectWidth;
+		const int topLineHeight = centerRectWidth * 2;
+		const int topLineX = centerRectX;
+		const int topLineY = centerRectY - offset - topLineHeight;
+		Gdiplus::Rect topLineRect(topLineX, topLineY, topLineWidth, topLineHeight);
+		graphics.FillRectangle(&brush, topLineRect);
+
+		// 画下边线
+		const int bottomLineWidth = topLineWidth;
+		const int bottomLineHeight = topLineHeight;
+		const int bottomLineX = topLineX;
+		const int bottomLineY = centerRectY + centerRectWidth + offset;
+		Gdiplus::Rect bottomRect(bottomLineX, bottomLineY, bottomLineWidth, bottomLineHeight);
+		graphics.FillRectangle(&brush, bottomRect);
+
 	}
 }
 
@@ -612,6 +678,7 @@ BEGIN_MESSAGE_MAP(CMaskDlg, CDialogEx)
 	ON_WM_SIZE()
 	ON_WM_SHOWWINDOW()
 	ON_WM_LBUTTONUP()
+	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
 
@@ -712,6 +779,16 @@ void CMaskDlg::setState(State* state)
 CDC* CMaskDlg::getImageMemDC()
 {
 	return &m_memCDC;
+}
+
+void CMaskDlg::startTimer()
+{
+	SetTimer(TIMER_ID_DRAW, 10, NULL);
+}
+
+void CMaskDlg::stopTimer()
+{
+	KillTimer(TIMER_ID_DRAW);
 }
 
 CRect CMaskDlg::getBoxRect()
@@ -935,3 +1012,12 @@ LRESULT CMaskDlg::OnHotKey(WPARAM wParam, LPARAM lParam)
 }
 
 
+
+
+void CMaskDlg::OnTimer(UINT_PTR nIDEvent)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	std::cout << "OnTimer" << std::endl;
+	Invalidate();
+	CDialogEx::OnTimer(nIDEvent);
+}
