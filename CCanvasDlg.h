@@ -2,6 +2,8 @@
 #include <vector>
 
 // CCanvasDlg 对话框
+#define WM_USER_MESSAGE_NEXT_IMAGE (WM_USER + 6)
+#define WM_USER_MESSAGE_PREV_IMAGE (WM_USER + 7)
 
 class CCanvasDlg : public CDialogEx
 {

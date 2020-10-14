@@ -83,6 +83,8 @@ BEGIN_MESSAGE_MAP(CImageCatDlg, CDialogEx)
 	ON_COMMAND(ID_TOOL_BAR_BTN_CUT, onToolbarBtnCut)
 	ON_MESSAGE(WM_HOTKEY, OnHotKey)
 	ON_MESSAGE(WM_USER_MESSAGE_CUT_QUIT, OnCutQuit)
+	ON_MESSAGE(WM_USER_MESSAGE_NEXT_IMAGE, OnNextImage)
+	ON_MESSAGE(WM_USER_MESSAGE_PREV_IMAGE, OnPrevImage)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
@@ -94,7 +96,6 @@ BEGIN_MESSAGE_MAP(CImageCatDlg, CDialogEx)
 	ON_WM_LBUTTONUP()
 	ON_WM_MBUTTONDBLCLK()
 	ON_WM_LBUTTONDBLCLK()
-	ON_WM_NCHITTEST()
 	ON_WM_MOVE()
 	ON_NOTIFY_EX(TTN_NEEDTEXT, 0, OnDisplay)
 END_MESSAGE_MAP()
@@ -143,7 +144,7 @@ BOOL CImageCatDlg::OnInitDialog()
 	initToolbar();
 
 	// 初始化画布
-	m_canvas.Create(IDD_DIALOG_CANVAS, NULL);
+	m_canvas.Create(IDD_DIALOG_CANVAS, this);
 	m_canvas.ShowWindow(SW_SHOW);
 
 	// 初始化蒙板
@@ -385,7 +386,12 @@ bool CImageCatDlg::isSupportFileFormatImage(CString fileName)
 		|| suffix == ".jpg"
 		|| suffix == ".bmp"
 		|| suffix == ".gif"
-		|| suffix == ".jpeg")
+		|| suffix == ".jpeg"
+		|| suffix == ".PNG"
+		|| suffix == ".JPG"
+		|| suffix == ".BMP"
+		|| suffix == ".JPEG"
+		|| suffix == ".GIF")
 	{
 		return true;
 	}
@@ -631,18 +637,10 @@ void CImageCatDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 BOOL CImageCatDlg::PreTranslateMessage(MSG* pMsg)
 {
 	// TODO: 在此添加专用代码和/或调用基类
+	std::cout << "PreTranslateMessage" << std::endl;
 	if (pMsg->message == WM_KEYDOWN)
 	{
-		if (pMsg->wParam == VK_DOWN)
-		{
-			std::cout << "onKeyDown --------------" << std::endl;
-			nextImage();
-		}
-		else if (pMsg->wParam == VK_UP)
-		{
-			prevImage();
-		}
-		else if (pMsg->wParam == VK_ESCAPE)
+		if (pMsg->wParam == VK_ESCAPE)
 		{
 			std::cout << "onKeyDown ----- vk_escape" << std::endl;
 			return true;
@@ -654,13 +652,6 @@ BOOL CImageCatDlg::PreTranslateMessage(MSG* pMsg)
 }
 
 
-LRESULT CImageCatDlg::OnNcHitTest(CPoint point)
-{
-	// TODO: 在此添加消息处理程序代码和/或调用默认值
-
-	return CDialogEx::OnNcHitTest(point);
-}
-
 
 void CImageCatDlg::OnMove(int x, int y)
 {
@@ -671,6 +662,18 @@ LRESULT CImageCatDlg::OnCutQuit(WPARAM wParam, LPARAM lParam)
 {
 	std::cout << "OnCancel" << std::endl;
 	quitCutImage();
+	return 0;
+}
+
+LRESULT CImageCatDlg::OnNextImage(WPARAM wParam, LPARAM lParam)
+{
+	nextImage();
+	return 0;
+}
+
+LRESULT CImageCatDlg::OnPrevImage(WPARAM wParam, LPARAM lParam)
+{
+	prevImage();
 	return 0;
 }
 

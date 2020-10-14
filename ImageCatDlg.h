@@ -55,6 +55,8 @@ protected:
 	afx_msg void onToolbarBtnCut();
 	afx_msg long OnHotKey(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnCutQuit(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnNextImage(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnPrevImage(WPARAM wParam, LPARAM lParam);
 	BOOL  OnDisplay(UINT id, NMHDR* pNMHDR, LRESULT* pResult);
 	DECLARE_MESSAGE_MAP()
 
@@ -77,6 +79,5 @@ public:
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
-	afx_msg LRESULT OnNcHitTest(CPoint point);
 	afx_msg void OnMove(int x, int y);
 };

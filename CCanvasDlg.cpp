@@ -516,10 +516,26 @@ BOOL CCanvasDlg::PreTranslateMessage(MSG* pMsg)
 {
 	// TODO: 在此添加专用代码和/或调用基类
 		//屏蔽ESC关闭窗体/
-	if (pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_ESCAPE)
+
+	if (pMsg->message == WM_KEYDOWN)
 	{
-		return TRUE;
+		if (pMsg->wParam == VK_DOWN)
+		{
+			std::cout << "onKeyDown --------------" << std::endl;
+			::SendMessage(this->GetParent()->GetSafeHwnd(), WM_USER_MESSAGE_NEXT_IMAGE, 0, 0);
+		}
+		else if (pMsg->wParam == VK_UP)
+		{
+			std::cout << "onKeyUp --------------" << std::endl;
+			::SendMessage(this->GetParent()->GetSafeHwnd(), WM_USER_MESSAGE_PREV_IMAGE, 0, 0);
+		}
+		else if (pMsg->wParam == VK_ESCAPE)
+		{
+			std::cout << "onKeyDown ----- vk_escape" << std::endl;
+			return true;
+		}
 	}
+
 	
 	return CDialogEx::PreTranslateMessage(pMsg);
 }
