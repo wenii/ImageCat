@@ -559,6 +559,7 @@ void DrawLineState::onDraw(CDC* drawDC, CDC* imageMemDC)
 	drawBox(drawDC, imageMemDC);
 	drawSizeText(drawDC, imageMemDC);
 	drawCursor(drawDC);
+	drawLine(drawDC);
 }
 
 void DrawLineState::onMouseMove(CPoint point, bool isLButtonDown)
@@ -573,6 +574,11 @@ void DrawLineState::onMouseMove(CPoint point, bool isLButtonDown)
 		while (ShowCursor(FALSE) >= 0)
 			ShowCursor(FALSE);
 		m_isMouseInBox = true;
+		if (m_isLButtonDown)
+		{
+			m_lineList.push_back(Line(m_lbuttonDownPoint, m_cursorPosition));
+			m_lbuttonDownPoint = m_cursorPosition;
+		}
 		m_target->Invalidate();
 	}
 	else
@@ -585,6 +591,45 @@ void DrawLineState::onMouseMove(CPoint point, bool isLButtonDown)
 			m_isMouseInBox = false;
 			m_target->Invalidate();
 		}
+	}
+}
+
+void DrawLineState::onLButtonDown(CPoint point)
+{
+	m_lbuttonDownPoint = point;
+	m_lineList.clear();
+}
+
+void DrawLineState::onLButtonUp(CPoint point)
+{
+	if (m_lineList.size() > 0)
+	{
+		m_lineListList.push_back(std::move(m_lineList));
+	}
+}
+
+void DrawLineState::drawLine(CDC* drawDC)
+{
+	Gdiplus::Graphics graphics(drawDC->m_hDC);
+	Gdiplus::SolidBrush brush(Gdiplus::Color(255, 255, 0, 0));
+	Gdiplus::Pen pen(Gdiplus::Color(255, 255, 0, 0), 4);
+	graphics.SetSmoothingMode(Gdiplus::SmoothingModeHighQuality);
+	for (auto lItr = m_lineListList.begin(); lItr != m_lineListList.end(); ++lItr)
+	{
+		std::list<Line>& lineList = *lItr;
+		for (auto itr = lineList.begin(); itr != lineList.end(); ++itr)
+		{
+			Gdiplus::Point beginPoint(itr->m_beginPoint.x, itr->m_beginPoint.y);
+			Gdiplus::Point endPoint(itr->m_endPoint.x, itr->m_endPoint.y);
+			graphics.DrawLine(&pen, beginPoint, endPoint);
+		}
+	}
+
+	for (auto itr = m_lineList.begin(); itr != m_lineList.end(); ++itr)
+	{
+		Gdiplus::Point beginPoint(itr->m_beginPoint.x, itr->m_beginPoint.y);
+		Gdiplus::Point endPoint(itr->m_endPoint.x, itr->m_endPoint.y);
+		graphics.DrawLine(&pen, beginPoint, endPoint);
 	}
 }
 

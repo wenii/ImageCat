@@ -182,6 +182,15 @@ public:
 	bool m_isMouseInBox;
 };
 
+struct Line
+{
+	Line(CPoint beginPoint, CPoint endPoint)
+		: m_beginPoint(beginPoint)
+		, m_endPoint(endPoint)
+	{}
+	CPoint m_beginPoint;
+	CPoint m_endPoint;
+};
 class DrawLineState : public State
 {
 public:
@@ -190,11 +199,16 @@ public:
 public:
 	virtual void onDraw(CDC* drawDC, CDC* imageMemDC);
 	virtual void onMouseMove(CPoint point, bool isLButtonDown);
+	virtual void onLButtonDown(CPoint point);
+	virtual void onLButtonUp(CPoint point);
 
 private:
 	void drawCursor(CDC* drawDC);
+	void drawLine(CDC* drawDC);
 
 private:
 	bool m_isMouseInBox;
+	std::list<std::list<Line>> m_lineListList;
+	std::list<Line> m_lineList;
 };
 
